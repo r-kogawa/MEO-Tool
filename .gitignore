@@ -25,3 +25,11 @@ logs
 
 .claude
 CLAUDE.md
+
+# Playwright MCP の出力（スクリーンショット・ログ）
+.playwright-mcp
+
+serviceAccount.json
+
+# Firebase Emulator のデータ（npm run dev:emulator の終了時に保存）
+.emulator-data

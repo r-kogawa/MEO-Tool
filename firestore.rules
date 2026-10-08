@@ -1,0 +1,120 @@
+rules_version = '2';
+
+// docs/02-database.md 5 章のうち、基盤（組織・メンバー・招待・連携・店舗）・GBP・順位計測・アンケートの読み取り規則。
+// 書き込みはすべて Functions（Admin SDK）経由のため、ここでは許可しない（users の本人更新のみ例外）。
+// ここに無いコレクションはすべて拒否される。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function memberPath(orgId) {
+      return /databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid);
+    }
+
+    function isMember(orgId) {
+      return isSignedIn() && exists(memberPath(orgId));
+    }
+
+    // メンバー判定とロール判定を get() 1 回にまとめる
+    function hasRole(orgId, roles) {
+      return isMember(orgId) && get(memberPath(orgId)).data.role in roles;
+    }
+
+    function canReadStore(orgId, storeId) {
+      let member = get(memberPath(orgId)).data;
+      return member.role in ['owner', 'admin'] || storeId in member.storeIds;
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['platformRole']);
+    }
+
+    // 回答画面の公開データ（遷移ルール・生成設定・口コミ URL は含めない）。未ログインでも slug を指定して 1 件読める（一覧は許可しない）。
+    // rateLimits/{slug}_{ipHash} はここに記載しない（全員拒否）
+    match /publicSurveys/{slug} {
+      allow get: if true;
+    }
+
+    // 自分の所属組織の一覧（collectionGroup('members') を uid で絞り込む）。
+    // 一覧取得のルールはクエリ条件から証明できる必要があるため、ドキュメント ID ではなく uid フィールドで判定する
+    match /{path=**}/members/{memberId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /organizations/{orgId} {
+      allow read: if isMember(orgId);
+
+      match /members/{uid} {
+        allow read: if isMember(orgId);
+      }
+
+      match /invitations/{invitationId} {
+        allow read: if hasRole(orgId, ['owner', 'admin']);
+      }
+
+      match /googleConnections/{connectionId} {
+        allow read: if hasRole(orgId, ['owner', 'admin']);
+      }
+
+      match /stores/{storeId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, storeId);
+      }
+
+      // GBP のキャッシュ（書き込みは Functions のみ）。staff は storeId in [担当店舗] で絞り込めば一覧も読める
+      match /gbpProfiles/{storeId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+
+      match /gbpReviews/{reviewId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+
+      match /gbpPosts/{postId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+
+      match /replyTemplates/{templateId} {
+        allow read: if isMember(orgId);
+      }
+
+      // 順位計測（書き込みは Functions のみ）。staff は storeId in [担当店舗] で絞り込めば一覧も読める
+      match /rankKeywords/{keywordId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+
+      match /rankSnapshots/{snapshotId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+
+      match /rankResults/{resultId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+
+      // その場計測は owner / admin だけの機能
+      match /rankSearches/{searchId} {
+        allow read: if hasRole(orgId, ['owner', 'admin']);
+      }
+
+      match /usageMonthly/{month} {
+        allow read: if isMember(orgId);
+      }
+
+      // アンケート（書き込みは Functions のみ）。staff は storeId in [担当店舗] で絞り込めば一覧も読める
+      match /surveys/{surveyId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+
+      match /surveyVersions/{versionId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+
+      match /responses/{responseId} {
+        allow read: if isMember(orgId) && canReadStore(orgId, resource.data.storeId);
+      }
+    }
+  }
+}

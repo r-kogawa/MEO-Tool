@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// 書き込みはその組織のメンバーだけ。未記載のパスは全拒否
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isMember(orgId) {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/organizations/$(orgId)/members/$(request.auth.uid));
+    }
+
+    // GBP 投稿の画像。Google は getDownloadURL のトークン付き URL で取得するため、公開読み取りは不要
+    match /orgs/{orgId}/gbpPosts/{fileName} {
+      allow read: if isMember(orgId);
+      // Storage ではファイルの上書きも create として評価されるため、既存ファイルが無いことを条件にする
+      allow create: if isMember(orgId)
+        && resource == null
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png)');
+    }
+  }
+}

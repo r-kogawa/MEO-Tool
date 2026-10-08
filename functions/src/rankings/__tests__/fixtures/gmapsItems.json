@@ -1,0 +1,44 @@
+[
+  {
+    "name": "DUKE Cafe 渋谷神南店",
+    "href": "https://www.google.com/maps/place/DUKE+Cafe/data=!4m7!3m6!1s0x60188d0002dd2525:0x232cbec6b4907381!8m2!3d35.66!4d139.70!16s%2Fg%2F11!19sChIJJSXdAgCNGGARgXOQtMa-LCM?authuser=0&hl=ja",
+    "starLabel": "4.1 つ星 クチコミ 195 件",
+    "text": "DUKE Cafe 渋谷神南店\nDUKE Cafe 渋谷神南店\n4.1(195) · ￥1,000～2,000\nカフェ・喫茶 ·  · 神南１丁目２０−５ Vort渋谷 Briller 6F\n営業中 · 営業終了: 23:00",
+    "isSponsored": false
+  },
+  {
+    "name": "Nakaniwa URBAN COFFEE COURTYARD",
+    "href": "https://www.google.com/maps/place/Nakaniwa/data=!4m7!3m6!1s0x0:0x0!8m2!3d35.66!4d139.70!16s%2Fg%2F11!19sChIJRwSp3HiNGGARfZL0ETA7Eo4?authuser=0&hl=ja",
+    "starLabel": "4.8 つ星 クチコミ 51 件",
+    "text": "Nakaniwa URBAN COFFEE COURTYARD\nNakaniwa URBAN COFFEE COURTYARD\n4.8(51) · ￥1,000～2,000\nカフェ・喫茶 · 渋谷１丁目１５−２２ 渋谷セルモビル 2階, 3階\n営業中 · 営業終了: 23:00",
+    "isSponsored": false
+  },
+  {
+    "name": "広告のカフェ",
+    "href": "https://www.google.com/maps/place/AD/data=!19sChIJ_ad_place_id_00001",
+    "starLabel": "4.0 つ星 クチコミ 10 件",
+    "text": "広告のカフェ\nスポンサー\n4.0(10)\nカフェ・喫茶 · 渋谷",
+    "isSponsored": true
+  },
+  {
+    "name": "yellow 渋谷",
+    "href": "https://www.google.com/maps/place/yellow/data=!4m7!3m6!1s0x0:0x0!8m2!3d35.66!4d139.70!16s%2Fg%2F11!19sChIJS1PONKiMGGARRwXhTSebwzM?authuser=0&hl=ja",
+    "starLabel": "4.4 つ星 クチコミ 2,123 件",
+    "text": "yellow 渋谷\nyellow 渋谷\n4.4(2,123) · ￥2,000～3,000\nカフェ・喫茶 ·  · 宇田川町２６−５ ビル 育真 B1階\n営業中 · 営業終了: 21:00",
+    "isSponsored": false
+  },
+  {
+    "name": "新しいカフェ",
+    "href": "https://www.google.com/maps/place/new/data=!4m2!3m1!1s0x0:0x1",
+    "starLabel": null,
+    "text": "新しいカフェ\n新しいカフェ\nコーヒーショップ・喫茶店 · 神南１丁目\n営業中",
+    "isSponsored": false
+  },
+  {
+    "name": "DUKE Cafe 渋谷神南店",
+    "href": "https://www.google.com/maps/place/DUKE+Cafe/data=!19sChIJJSXdAgCNGGARgXOQtMa-LCM",
+    "starLabel": "4.1 つ星 クチコミ 195 件",
+    "text": "DUKE Cafe 渋谷神南店",
+    "isSponsored": false
+  }
+]
