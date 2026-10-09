@@ -1,11 +1,10 @@
-import type { MockDb } from '~/utils/mock/seed'
-import { createEmptyDb } from '~/utils/firebase/emptyDb'
-
 /**
- * 画面が読むリアクティブ DB。モックでは仮データ、本物では Firestore を購読して流し込んだもの。
- * どちらも同じ形なので、読み取り側の computed はモードを意識しない。
+ * 画面が読むリアクティブ DB。デモアカウントでログイン中は仮データ、それ以外は Firestore を購読して流し込んだもの。
+ * どちらも同じ形なので、読み取り側の computed はモードを意識しない。ログインでモードが変わると自動で切り替わる。
  */
 export function useAppDb() {
-  if (useRuntimeConfig().public.useMock) return useMockDb()
-  return useState<MockDb>('firestore-db', createEmptyDb)
+  const { isMock } = useDemoSession()
+  const mockDb = useMockDb()
+  const firestoreDb = useFirestoreDb()
+  return computed(() => (isMock.value ? mockDb.value : firestoreDb.value))
 }

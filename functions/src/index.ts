@@ -3,6 +3,10 @@ import {onRequest} from "firebase-functions/https";
 import { initializeApp, cert, ServiceAccount } from "firebase-admin/app";
 import { callable, publicCallable } from "./shared/callable";
 import { createOrganizationFunc } from "./identity/createOrganization";
+import { createAccountFunc } from "./identity/createAccount";
+import { externalApi } from "./shared/externalApi";
+import { appUrl } from "./shared/appUrl";
+import { defineSecret } from "firebase-functions/params";
 import {
   createInvitationFunc,
   getInvitationFunc,
@@ -48,16 +52,6 @@ initializeApp({
 
 setGlobalOptions({ region: "asia-northeast1" });
 
-export const Hellow = onRequest(
-  {
-    region: "asia-northeast1",
-    timeoutSeconds: 3600
-  },
-   (req, res) => {
-    console.log("Hellow")
-  }
-)
-
 // identity/ … 組織・招待・メンバー（docs/04-features.md F-01, F-03）
 export const createOrganization = callable(createOrganizationFunc);
 export const createInvitation = callable(createInvitationFunc);
@@ -67,6 +61,8 @@ export const updateInvitationRevoke = callable(updateInvitationRevokeFunc);
 export const updateMemberRole = callable(updateMemberRoleFunc);
 export const deleteMember = callable(deleteMemberFunc);
 export const updateOrganizationName = callable(updateOrganizationNameFunc);
+// 外部システムからのアカウント作成（Authorization: Bearer <ACCOUNT_API_KEY> の POST）
+export const createAccount = externalApi(defineSecret("ACCOUNT_API_KEY"), (db, data) => createAccountFunc(db, data));
 
 // google/ … OAuth クライアント・Google 連携（F-04）
 export const updateGoogleOAuthClient = callable(updateGoogleOAuthClientFunc);
@@ -87,7 +83,7 @@ export const googleOAuthCallback = onRequest(async (req, res) => {
   catch (error) {
     // 想定外の例外でも利用者を Functions のエラー画面で止めず、管理画面へ戻す
     logger.error("googleOAuthCallback で想定外のエラー", { error: String(error) });
-    res.redirect(302, `${(process.env.ADMIN_APP_URL ?? "").replace(/\/$/, "")}/orgs?googleError=save_failed`);
+    res.redirect(302, appUrl("/orgs?googleError=save_failed"));
   }
 });
 

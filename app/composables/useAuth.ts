@@ -1,41 +1,22 @@
 import { FirebaseError } from 'firebase/app'
 import {
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
+  verifyPasswordResetCode,
 } from 'firebase/auth'
 import type { OrgType, User } from '~/types/domain'
 import { toAuthError } from '~/utils/firebase/authErrors'
 import { callFunction } from '~/utils/firebase/callFunction'
-import { createOrganizationFunc } from '~/utils/mock/functions/identity'
+import { isDemoUid } from '~/utils/mock/demo'
 import { MockFunctionsError, mockLatency } from '~/utils/mock/functions/shared'
-import { createId } from '~/utils/mock/random'
 import { DEMO_PASSWORD } from '~/utils/mock/seed'
 
-// F-01 認証。本物モードは Firebase Auth、モックは仮データのユーザーでログイン状態だけを再現する。
-
-const STORAGE_KEY = 'meo-tool:mock-uid'
-
-function readStoredUid(): string | null {
-  try {
-    return localStorage.getItem(STORAGE_KEY)
-  }
-  catch {
-    return null
-  }
-}
-
-function writeStoredUid(uid: string | null): void {
-  try {
-    if (uid) localStorage.setItem(STORAGE_KEY, uid)
-    else localStorage.removeItem(STORAGE_KEY)
-  }
-  catch {
-    // ストレージが使えない環境ではメモリ上のログイン状態だけで動かす
-  }
-}
+// F-01 認証。デモアカウント 3 人は仮データのユーザーでログイン状態だけを再現し、それ以外は Firebase Auth。
+// デモと Firebase のログインは同時に有効にしない（片方に入るときにもう片方から抜ける）。
 
 interface SignupInput {
   type: OrgType
@@ -45,25 +26,21 @@ interface SignupInput {
   password: string
 }
 
-
 export function useAuth() {
-  const isMock = useRuntimeConfig().public.useMock
-  const db = useAppDb()
+  const { demoUid, isMock, enterDemo, leaveDemo } = useDemoSession()
+  const mockDb = useMockDb()
+  const firestoreDb = useFirestoreDb()
   const { $auth, $functions } = useNuxtApp()
   const { waitForOrg } = useBackendReady()
-  const uid = useState<string | null>('auth-uid', () => (isMock ? readStoredUid() : null))
   // 組織作成の再送用。成功するまで同じ ID を使い、Functions 側の重複防止を効かせる
   const signupRequestId = useState('signup-request-id', () => crypto.randomUUID())
 
-  // 本物モードでは users に自分 1 人だけが入る（useFirestoreSync）
+  // Firebase 側は users に自分 1 人だけが入る（useFirestoreSync）
   const user = computed<User | null>(() =>
-    isMock ? db.value.users.find(item => item.uid === uid.value) ?? null : db.value.users[0] ?? null)
+    isMock.value
+      ? mockDb.value.users.find(item => item.uid === demoUid.value) ?? null
+      : firestoreDb.value.users[0] ?? null)
   const isLoggedIn = computed(() => user.value !== null)
-
-  function setUid(value: string | null): void {
-    uid.value = value
-    writeStoredUid(value)
-  }
 
   function validatePassword(password: string): void {
     if (password.length < 8) throw new MockFunctionsError('invalid-argument', 'パスワードは 8 文字以上にしてください。')
@@ -82,112 +59,110 @@ export function useAuth() {
     refreshAuthUser()
   }
 
-  async function login(email: string, password: string): Promise<void> {
-    if (!isMock) {
-      try {
-        await signInWithEmailAndPassword($auth, email.trim(), password)
-      }
-      catch (error) {
-        throw toAuthError(error)
-      }
-      return
-    }
-    await mockLatency()
-    const found = db.value.users.find(item => item.email === email.trim().toLowerCase())
-    if (!found || password !== DEMO_PASSWORD) {
-      throw new MockFunctionsError('unauthenticated', 'メールアドレスまたはパスワードが正しくありません。')
-    }
-    setUid(found.uid)
+  /** デモアカウント 3 人のうち、メールアドレスが一致する人 */
+  function findDemoUser(email: string): User | null {
+    const normalized = email.trim().toLowerCase()
+    return mockDb.value.users.find(item => isDemoUid(item.uid) && item.email === normalized) ?? null
   }
 
-  /** デモ用: パスワードなしで指定ユーザーとしてログインする（モックのみ） */
-  function loginAs(targetUid: string): void {
-    setUid(targetUid)
+  /** Firebase からログアウトしてデモに入る。ログアウトに失敗してもデモへの切り替えは続ける（購読側は空になる） */
+  async function enterDemoAs(uid: string): Promise<void> {
+    if ($auth.currentUser) {
+      try {
+        await signOut($auth)
+      }
+      catch {
+        // 続行する
+      }
+    }
+    enterDemo(uid)
+  }
+
+  async function login(email: string, password: string): Promise<void> {
+    const demoUser = findDemoUser(email)
+    if (demoUser && password === DEMO_PASSWORD) {
+      await mockLatency()
+      await enterDemoAs(demoUser.uid)
+      return
+    }
+    leaveDemo()
+    try {
+      await signInWithEmailAndPassword($auth, email.trim(), password)
+    }
+    catch (error) {
+      throw toAuthError(error)
+    }
   }
 
   async function logout(): Promise<void> {
-    if (!isMock) {
-      await signOut($auth)
+    if (isMock.value) {
+      leaveDemo()
       return
     }
-    setUid(null)
+    await signOut($auth)
   }
 
   /** アカウントと組織をまとめて作成し、作成した組織 ID を返す */
   async function signup(input: SignupInput): Promise<string> {
-    if (!isMock) {
-      // 前回の登録が組織作成の途中で失敗していたら、アカウント作成は飛ばして組織作成だけをやり直す
-      const currentUser = $auth.currentUser
-      if (currentUser?.email?.toLowerCase() === input.email.trim().toLowerCase()) {
-        await updateProfile(currentUser, { displayName: input.displayName.trim() })
-        refreshAuthUser()
-      }
-      else {
-        await createFirebaseUser(input)
-      }
-      const { orgId } = await callFunction<object, { orgId: string }>($functions, 'createOrganization', {
-        requestId: signupRequestId.value,
-        type: input.type,
-        orgName: input.orgName.trim(),
-        displayName: input.displayName.trim(),
-      })
-      await waitForOrg(orgId)
-      signupRequestId.value = crypto.randomUUID()
-      return orgId
+    leaveDemo()
+    // 前回の登録が組織作成の途中で失敗していたら、アカウント作成は飛ばして組織作成だけをやり直す
+    const currentUser = $auth.currentUser
+    if (currentUser?.email?.toLowerCase() === input.email.trim().toLowerCase()) {
+      await updateProfile(currentUser, { displayName: input.displayName.trim() })
+      refreshAuthUser()
     }
-    await mockLatency()
-    const email = input.email.trim().toLowerCase()
-    if (db.value.users.some(item => item.email === email)) {
-      throw new MockFunctionsError('already-exists', 'このメールアドレスはすでに登録されています。')
+    else {
+      await createFirebaseUser(input)
     }
-    validatePassword(input.password)
-
-    const newUser: User = { uid: createId('u'), email, displayName: input.displayName.trim(), isOperator: false }
-    db.value.users.push(newUser)
-    const orgId = createOrganizationFunc(db.value, {
-      uid: newUser.uid,
-      email,
-      displayName: newUser.displayName,
+    const { orgId } = await callFunction<object, { orgId: string }>($functions, 'createOrganization', {
+      requestId: signupRequestId.value,
       type: input.type,
       orgName: input.orgName.trim(),
+      displayName: input.displayName.trim(),
     })
-    setUid(newUser.uid)
+    await waitForOrg(orgId)
+    signupRequestId.value = crypto.randomUUID()
     return orgId
   }
 
   /** 招待から参加する人向け: 組織を作らずにアカウントだけ作成してログインする */
   async function registerUser(input: { displayName: string; email: string; password: string }): Promise<void> {
-    if (!isMock) {
-      await createFirebaseUser(input)
-      return
-    }
-    await mockLatency()
-    const email = input.email.trim().toLowerCase()
-    if (db.value.users.some(item => item.email === email)) {
-      throw new MockFunctionsError('already-exists', 'このメールアドレスはすでに登録されています。ログインしてください。')
-    }
-    validatePassword(input.password)
-    const newUser: User = { uid: createId('u'), email, displayName: input.displayName.trim(), isOperator: false }
-    db.value.users.push(newUser)
-    setUid(newUser.uid)
+    leaveDemo()
+    await createFirebaseUser(input)
   }
 
   async function requestPasswordReset(email: string): Promise<void> {
-    if (!isMock) {
-      try {
-        await sendPasswordResetEmail($auth, email.trim())
-      }
-      catch (error) {
-        // 登録有無が分からないよう、存在しないメールでも成功扱いにする
-        if (error instanceof FirebaseError && error.code === 'auth/user-not-found') return
-        throw toAuthError(error)
-      }
-      return
+    try {
+      await sendPasswordResetEmail($auth, email.trim())
     }
-    await mockLatency()
-    // 登録有無が分からないよう、存在しないメールでも成功扱いにする
-    void email
+    catch (error) {
+      // 登録有無が分からないよう、存在しないメールでも成功扱いにする
+      if (error instanceof FirebaseError && error.code === 'auth/user-not-found') return
+      throw toAuthError(error)
+    }
   }
 
-  return { user, isLoggedIn, login, loginAs, logout, signup, registerUser, requestPasswordReset }
+  /** パスワード設定リンクの oobCode を確かめ、対象のメールアドレスを返す */
+  async function verifyPasswordSetupCode(oobCode: string): Promise<string> {
+    try {
+      return await verifyPasswordResetCode($auth, oobCode)
+    }
+    catch (error) {
+      throw toAuthError(error)
+    }
+  }
+
+  /** oobCode でパスワードを設定し、そのままログインする */
+  async function setupPassword(oobCode: string, email: string, password: string): Promise<void> {
+    validatePassword(password)
+    try {
+      await confirmPasswordReset($auth, oobCode, password)
+    }
+    catch (error) {
+      throw toAuthError(error)
+    }
+    await login(email, password)
+  }
+
+  return { user, isLoggedIn, login, logout, verifyPasswordSetupCode, setupPassword, signup, registerUser, requestPasswordReset }
 }

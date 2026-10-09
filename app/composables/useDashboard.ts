@@ -1,12 +1,12 @@
 import type { SurveyResponse } from '~/types/domain'
 
-// F-18 ダッシュボード。本番では stores/{id}/dailyStats を読むが、モックでは回答から集計する。
+// F-18 ダッシュボード。デモ・Firebase とも、購読している回答（直近 90 日）から集計する。
 
 export const DASHBOARD_PERIODS = [7, 30] as const
 export type DashboardPeriod = typeof DASHBOARD_PERIODS[number]
 
 export function useDashboard() {
-  const db = useMockDb()
+  const db = useAppDb()
   const { orgId, visibleStores, visibleStoreIds } = useCurrentOrg()
   const { rows: keywordRows } = useRankKeywords()
   const { hasError: hasConnectionError, isConnected } = useGoogleConnection()

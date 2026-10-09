@@ -16,7 +16,7 @@ export const SURVEY_STATUS_LABELS: Record<SurveyStatus, string> = {
 }
 
 export function useSurveys() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const { $functions } = useNuxtApp()
   const db = useAppDb()
   const { user } = useAuth()
@@ -37,7 +37,7 @@ export function useSurveys() {
   }
 
   /** 本物モードの回答は直近 90 日分だけ購読しているため、件数に添える注記（モックは空） */
-  const responseCountNote = isMock ? '' : '直近 90 日'
+  const responseCountNote = computed(() => (isMock.value ? '' : '直近 90 日'))
 
   /** 作成直後に編集画面へ移ると、購読が届く前で「見つかりません」になるため、届くまで待つ */
   function waitForSurvey(surveyId: string): Promise<void> {
@@ -55,7 +55,7 @@ export function useSurveys() {
   }
 
   async function createSurvey(input: { storeId: string; title: string; content: SurveyContent }): Promise<{ id: string }> {
-    if (!isMock) {
+    if (!isMock.value) {
       const created = await callFunction<object, { id: string }>($functions, 'createSurvey', { orgId: orgId.value, ...input })
       await waitForSurvey(created.id)
       return created
@@ -65,7 +65,7 @@ export function useSurveys() {
   }
 
   async function copySurvey(surveyId: string, storeId: string): Promise<{ id: string }> {
-    if (!isMock) {
+    if (!isMock.value) {
       const created = await callFunction<object, { id: string }>($functions, 'createSurveyCopy', { orgId: orgId.value, surveyId, storeId })
       await waitForSurvey(created.id)
       return created

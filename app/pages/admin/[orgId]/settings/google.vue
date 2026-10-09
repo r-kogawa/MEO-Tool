@@ -8,7 +8,7 @@ definePageMeta({ layout: 'admin', roles: ['owner', 'admin'] })
 useHead({ title: 'Google 連携' })
 
 const { adminPath, isOwner } = useCurrentOrg()
-const isMock = useRuntimeConfig().public.useMock
+const { isMock } = useDemoSession()
 const route = useRoute()
 const router = useRouter()
 const {

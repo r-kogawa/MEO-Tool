@@ -15,7 +15,7 @@ export interface UsageItem {
 export const USAGE_WARNING_RATIO = 0.8
 
 export function useUsage() {
-  const db = useMockDb()
+  const db = useAppDb()
   const { org, orgId } = useCurrentOrg()
 
   const monthly = computed(() =>

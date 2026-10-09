@@ -2,6 +2,7 @@ import { beforeEach, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Timestamp } from 'firebase-admin/firestore'
 import { caller, clearFirestore, getTestDb, seedOrg, seedStore } from '../../__tests__/emulator'
+import type { Mailer, MailMessage } from '../../shared/mail'
 import {
   createInvitationFunc,
   getInvitationFunc,
@@ -40,6 +41,28 @@ test('createInvitation: 平文トークンを返し、保存はハッシュの�
   assert.equal(saved.tokenHash, hashToken(invitation.token))
   assert.equal(saved.token, undefined)
   assert.ok(Date.parse(invitation.expiresAt) > Date.now() + 6 * 24 * 3600 * 1000)
+})
+
+test('createInvitation: 招待した人に招待 URL 入りのメールを送る', async () => {
+  process.env.ADMIN_APP_URL = 'https://app.example.com'
+  const sent: MailMessage[] = []
+  const mailer: Mailer = { async send(message) { sent.push(message) } }
+
+  const invitation = await createInvitationFunc(db, OWNER, { orgId: 'org-a', email: 'new@example.com', role: 'admin', storeIds: [] }, mailer)
+
+  assert.equal(invitation.isMailSent, true)
+  assert.equal(sent.length, 1)
+  assert.equal(sent[0]!.to, 'new@example.com')
+  assert.ok(sent[0]!.text.includes(`https://app.example.com/invite/${invitation.token}`))
+})
+
+test('createInvitation: メールを送れなくても招待は作成し、isMailSent: false を返す', async () => {
+  const mailer: Mailer = { async send() { throw new Error('SMTP 接続失敗') } }
+
+  const invitation = await createInvitationFunc(db, OWNER, { orgId: 'org-a', email: 'new@example.com', role: 'admin', storeIds: [] }, mailer)
+
+  assert.equal(invitation.isMailSent, false)
+  assert.ok((await db.doc(`organizations/org-a/invitations/${invitation.id}`).get()).exists)
 })
 
 test('createInvitation: staff・個人組織・既存メンバー・送信済みは拒否', async () => {

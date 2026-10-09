@@ -7,6 +7,7 @@ const original = { ...process.env }
 beforeEach(() => {
   resetSecretCipherForTest()
   delete process.env.FUNCTIONS_EMULATOR
+  delete process.env.FIRESTORE_EMULATOR_HOST
   delete process.env.KMS_KEY_NAME
   process.env.SECRET_CIPHER = 'local'
 })
@@ -48,4 +49,18 @@ test('本番設定ではローカル暗号の秘密を復号しない（設定�
   process.env.KMS_KEY_NAME = 'projects/p/locations/l/keyRings/r/cryptoKeys/k'
   resetSecretCipherForTest()
   await assert.rejects(decryptSecret(secret), { code: 'failed-precondition' })
+})
+
+test('Functions Emulator だけ（データは本番）ではローカル暗号を使わず、KMS_KEY_NAME が無ければ failed-precondition', async () => {
+  delete process.env.SECRET_CIPHER
+  process.env.FUNCTIONS_EMULATOR = 'true'
+  await assert.rejects(encryptSecret('x'), { code: 'failed-precondition' })
+})
+
+test('Functions と Firestore の両方が Emulator ならローカル暗号を使う', async () => {
+  delete process.env.SECRET_CIPHER
+  process.env.FUNCTIONS_EMULATOR = 'true'
+  process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080'
+  const secret = await encryptSecret('x')
+  assert.equal(await decryptSecret(secret), 'x')
 })

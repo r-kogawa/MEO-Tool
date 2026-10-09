@@ -8,6 +8,8 @@ const MESSAGES: Record<string, string> = {
   'auth/weak-password': 'パスワードは 8 文字以上にしてください。',
   'auth/invalid-email': 'メールアドレスの形式が正しくありません。',
   'auth/too-many-requests': '試行回数が多すぎます。しばらくしてから再度お試しください。',
+  'auth/expired-action-code': 'リンクの有効期限が切れています。パスワード再設定から新しいリンクを発行してください。',
+  'auth/invalid-action-code': 'リンクが無効です（使用済み、または URL が途中で切れている可能性があります）。パスワード再設定から新しいリンクを発行してください。',
   'auth/network-request-failed': '通信に失敗しました。接続を確認して再度お試しください。',
 }
 

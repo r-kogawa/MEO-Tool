@@ -12,7 +12,7 @@ import {
 // F-09 公開管理（公開・一時停止・再開・終了・期間・URL 再発行）
 
 export function useSurveyPublish(surveyId: string) {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const { $functions } = useNuxtApp()
   const db = useAppDb()
   const { user } = useAuth()
@@ -33,26 +33,26 @@ export function useSurveyPublish(surveyId: string) {
   const target = () => ({ orgId: orgId.value, surveyId })
 
   async function publish(): Promise<{ version: number }> {
-    if (!isMock) return callFunction<object, { version: number }>($functions, 'updateSurveyPublish', target())
+    if (!isMock.value) return callFunction<object, { version: number }>($functions, 'updateSurveyPublish', target())
     await mockLatency()
     const published = updateSurveyPublishFunc(db.value, user.value!.uid, orgId.value, surveyId)
     return { version: published.currentVersion ?? 1 }
   }
 
   async function changeStatus(action: SurveyStatusAction): Promise<{ status: SurveyStatus }> {
-    if (!isMock) return callFunction<object, { status: SurveyStatus }>($functions, 'updateSurveyStatus', { ...target(), action })
+    if (!isMock.value) return callFunction<object, { status: SurveyStatus }>($functions, 'updateSurveyStatus', { ...target(), action })
     await mockLatency()
     return { status: updateSurveyStatusFunc(db.value, user.value!.uid, orgId.value, surveyId, action).status }
   }
 
   async function regenerateSlug(): Promise<string> {
-    if (!isMock) return (await callFunction<object, { slug: string }>($functions, 'updateSurveySlug', target())).slug
+    if (!isMock.value) return (await callFunction<object, { slug: string }>($functions, 'updateSurveySlug', target())).slug
     await mockLatency()
     return updateSurveySlugFunc(db.value, user.value!.uid, orgId.value, surveyId)
   }
 
   async function updatePeriod(period: PublishPeriod): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'updateSurveyPeriod', { ...target(), publishPeriod: period })
       return
     }

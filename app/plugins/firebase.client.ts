@@ -1,8 +1,9 @@
 import { initializeApp, getApps, type FirebaseOptions } from "firebase/app";
-import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
-import { connectStorageEmulator, getStorage } from "firebase/storage";
-import { connectAuthEmulator, getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getAuth } from "firebase/auth";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
+import { isLocalHost } from "~/utils/firebase/isLocalHost";
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig();
@@ -28,12 +29,10 @@ export default defineNuxtPlugin(() => {
   const auth = getAuth(firebaseApp);
   const functions = getFunctions(firebaseApp, "asia-northeast1");
 
+  // Auth / Firestore / Storage は常に本番。手元（localhost）で開いたときだけ Functions を手元の Emulator に向ける。
   // ポートは firebase.json の emulators と合わせる
-  if (config.public.useEmulator) {
-    connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-    connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  if (isLocalHost(window.location.hostname)) {
     connectFunctionsEmulator(functions, "127.0.0.1", 5001);
-    connectStorageEmulator(storage, "127.0.0.1", 9199);
   }
 
   return {

@@ -89,7 +89,6 @@ async function onArchive(): Promise<void> {
               <UiCommonIcon name="external" size-class="size-4" />口コミ画面を開いて確認
             </a>
           </div>
-          <p class="text-xs text-slate-500">デモ版の Place ID は仮の値のため、Google 側では店舗が表示されません。</p>
         </div>
       </UiCommonCard>
     </div>

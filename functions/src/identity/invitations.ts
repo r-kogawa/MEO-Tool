@@ -1,10 +1,14 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { FieldValue, Timestamp, type DocumentSnapshot, type Firestore } from 'firebase-admin/firestore'
+import { logger } from 'firebase-functions'
+import { appUrl } from '../shared/appUrl'
 import { writeAuditLog } from '../shared/audit'
 import type { Caller } from '../shared/auth'
 import { fail } from '../shared/errors'
+import { smtpMailer, type Mailer } from '../shared/mail'
 import { memberRef, orgRef, requireMember, requireOrg, type OrgDoc, type OrgType } from '../shared/members'
 import { asObject, requireEmail, requireId, requireOneOf, requireString, requireStringArray } from '../shared/validation'
+import { buildInvitationMail } from './invitationMail'
 
 const INVITABLE_ROLES = ['admin', 'staff'] as const
 const EXPIRES_IN_MS = 7 * 24 * 60 * 60 * 1000
@@ -68,8 +72,13 @@ async function findByToken(db: Firestore, token: string): Promise<DocumentSnapsh
   return snapshot.docs[0]
 }
 
-/** F-03 招待の作成（法人のみ・owner / admin） */
-export async function createInvitationFunc(db: Firestore, caller: Caller, data: unknown): Promise<InvitationResult> {
+/** F-03 招待の作成（法人のみ・owner / admin）。作成後に招待メールを送る。送れなくても招待は有効（画面から URL を共有できる） */
+export async function createInvitationFunc(
+  db: Firestore,
+  caller: Caller,
+  data: unknown,
+  mailer: Mailer = smtpMailer,
+): Promise<InvitationResult & { isMailSent: boolean }> {
   const input = asObject(data)
   const orgId = requireId(input.orgId, '組織 ID')
   const email = requireEmail(input.email)
@@ -78,7 +87,7 @@ export async function createInvitationFunc(db: Firestore, caller: Caller, data: 
   if (role === 'staff' && storeIds.length === 0) fail('invalid-argument', 'スタッフには担当店舗を 1 つ以上選んでください。')
 
   const token = randomBytes(24).toString('base64url')
-  return db.runTransaction(async (tx) => {
+  const { result, orgName } = await db.runTransaction(async (tx) => {
     const org = await requireOrg(db, orgId, tx)
     await requireMember(db, orgId, caller.uid, ['owner', 'admin'], tx)
     if (org.type !== 'corporate') fail('failed-precondition', 'メンバー招待は法人組織のみ利用できます。')
@@ -111,8 +120,27 @@ export async function createInvitationFunc(db: Firestore, caller: Caller, data: 
     }
     tx.create(ref, invitation)
     writeAuditLog(tx, db, orgId, 'invitation.create', caller.uid, { invitationId: ref.id, email, role })
-    return toResult(ref.id, invitation, token, caller.uid)
+    return { result: toResult(ref.id, invitation, token, caller.uid), orgName: org.name }
   })
+  return { ...result, isMailSent: await sendInvitationMail(mailer, result, orgName) }
+}
+
+/** 招待メールを送り、送れたかを返す（トランザクションの外で 1 回だけ送る） */
+async function sendInvitationMail(mailer: Mailer, invitation: InvitationResult, orgName: string): Promise<boolean> {
+  try {
+    await mailer.send(buildInvitationMail({
+      to: invitation.email,
+      orgName,
+      role: invitation.role,
+      url: appUrl(`/invite/${invitation.token}`),
+      expiresAt: new Date(invitation.expiresAt),
+    }))
+    return true
+  }
+  catch (error) {
+    logger.error('招待メールの送信に失敗', { orgId: invitation.orgId, invitationId: invitation.id, error: String(error) })
+    return false
+  }
 }
 
 /** 招待画面（未ログインでも開ける）向けの確認。トークンは返さない */

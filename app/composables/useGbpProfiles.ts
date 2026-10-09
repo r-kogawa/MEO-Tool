@@ -6,7 +6,7 @@ import { mockLatency } from '~/utils/mock/functions/shared'
 // GBP プロフィールの一覧・同期・編集
 
 export function useGbpProfiles() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { user } = useAuth()
   const { orgId, visibleStores } = useCurrentOrg()
@@ -20,13 +20,13 @@ export function useGbpProfiles() {
   }
 
   async function syncProfiles(storeIds?: string[]): Promise<BatchResult> {
-    if (!isMock) return callFunction($functions, 'updateGbpProfilesSync', { orgId: orgId.value, storeIds })
+    if (!isMock.value) return callFunction($functions, 'updateGbpProfilesSync', { orgId: orgId.value, storeIds })
     await mockLatency(600)
     return updateGbpProfilesSyncFunc(db.value, user.value!.uid, orgId.value, storeIds)
   }
 
   async function updateProfile(storeId: string, patch: GbpProfilePatch): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'updateGbpProfile', { orgId: orgId.value, storeId, patch })
       return
     }

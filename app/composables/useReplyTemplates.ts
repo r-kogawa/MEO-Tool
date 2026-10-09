@@ -5,7 +5,7 @@ import { mockLatency } from '~/utils/mock/functions/shared'
 // 口コミ返信のテンプレート（owner / admin が管理し、メンバー全員が使える）
 
 export function useReplyTemplates() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { user } = useAuth()
   const { orgId } = useCurrentOrg()
@@ -15,7 +15,7 @@ export function useReplyTemplates() {
     db.value.replyTemplates.filter(item => item.orgId === orgId.value).sort((a, b) => a.createdAt.localeCompare(b.createdAt)))
 
   async function createTemplate(input: { name: string; body: string }): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'createReplyTemplate', { orgId: orgId.value, ...input })
       return
     }
@@ -24,7 +24,7 @@ export function useReplyTemplates() {
   }
 
   async function updateTemplate(templateId: string, input: { name: string; body: string }): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'updateReplyTemplate', { orgId: orgId.value, templateId, ...input })
       return
     }
@@ -33,7 +33,7 @@ export function useReplyTemplates() {
   }
 
   async function deleteTemplate(templateId: string): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'deleteReplyTemplate', { orgId: orgId.value, templateId })
       return
     }

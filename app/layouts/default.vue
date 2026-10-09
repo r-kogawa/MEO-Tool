@@ -2,7 +2,7 @@
   <div class="flex min-h-screen flex-col">
     <header class="border-b border-slate-200">
       <div class="mx-auto flex h-14 max-w-5xl items-center px-4">
-        <NuxtLink to="/" class="font-bold text-brand-700">MEO-Tool</NuxtLink>
+        <NuxtLink to="/"><UiCommonLogo /></NuxtLink>
       </div>
     </header>
 

@@ -31,5 +31,5 @@ CLAUDE.md
 
 serviceAccount.json
 
-# Firebase Emulator のデータ（npm run dev:emulator の終了時に保存）
+# 以前の全 Emulator 構成の保存先（今は使わない）
 .emulator-data

@@ -11,7 +11,7 @@ import { mockLatency } from '~/utils/mock/functions/shared'
 // F-03 メンバー招待・権限管理（法人のみ）
 
 export function useMembers() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const { $functions } = useNuxtApp()
   const db = useAppDb()
   const { user } = useAuth()
@@ -23,26 +23,28 @@ export function useMembers() {
       .filter(item => item.orgId === orgId.value && item.status !== 'accepted')
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
 
-  async function invite(input: { email: string; role: Exclude<MemberRole, 'owner'>; storeIds: string[] }): Promise<Invitation> {
-    if (!isMock) return callFunction($functions, 'createInvitation', { orgId: orgId.value, ...input })
+  /** 招待を作り、招待メールを送る。isMailSent は送れたか（送れなければ画面の URL を共有してもらう） */
+  async function invite(input: { email: string; role: Exclude<MemberRole, 'owner'>; storeIds: string[] }): Promise<Invitation & { isMailSent: boolean }> {
+    if (!isMock.value) return callFunction($functions, 'createInvitation', { orgId: orgId.value, ...input })
     await mockLatency()
-    return createInvitationFunc(db.value, user.value!.uid, { orgId: orgId.value, ...input })
+    // 仮データではメールを送らない
+    return { ...createInvitationFunc(db.value, user.value!.uid, { orgId: orgId.value, ...input }), isMailSent: false }
   }
 
   async function revokeInvitation(invitationId: string) {
-    if (!isMock) return callFunction<object, void>($functions, 'updateInvitationRevoke', { orgId: orgId.value, invitationId })
+    if (!isMock.value) return callFunction<object, void>($functions, 'updateInvitationRevoke', { orgId: orgId.value, invitationId })
     await mockLatency()
     updateInvitationRevokeFunc(db.value, user.value!.uid, orgId.value, invitationId)
   }
 
   async function updateRole(targetUid: string, role: Exclude<MemberRole, 'owner'>, storeIds: string[]) {
-    if (!isMock) return callFunction<object, void>($functions, 'updateMemberRole', { orgId: orgId.value, targetUid, role, storeIds })
+    if (!isMock.value) return callFunction<object, void>($functions, 'updateMemberRole', { orgId: orgId.value, targetUid, role, storeIds })
     await mockLatency()
     updateMemberRoleFunc(db.value, user.value!.uid, { orgId: orgId.value, targetUid, role, storeIds })
   }
 
   async function removeMember(targetUid: string) {
-    if (!isMock) return callFunction<object, void>($functions, 'deleteMember', { orgId: orgId.value, targetUid })
+    if (!isMock.value) return callFunction<object, void>($functions, 'deleteMember', { orgId: orgId.value, targetUid })
     await mockLatency()
     deleteMemberFunc(db.value, user.value!.uid, orgId.value, targetUid)
   }

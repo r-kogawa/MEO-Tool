@@ -17,7 +17,7 @@ export const ORG_TYPE_LABELS: Record<OrgType, string> = {
 
 export function useCurrentOrg() {
   const route = useRoute()
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const { $functions } = useNuxtApp()
   const db = useAppDb()
   const { user } = useAuth()
@@ -57,7 +57,7 @@ export function useCurrentOrg() {
     const trimmed = name.trim()
     if (!org.value || !isOwner.value) throw new Error('組織名を変更する権限がありません。')
     if (trimmed === '') throw new Error('組織名を入力してください。')
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'updateOrganizationName', { orgId: orgId.value, name: trimmed })
       return
     }

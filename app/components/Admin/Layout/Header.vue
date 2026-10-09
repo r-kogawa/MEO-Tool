@@ -15,7 +15,7 @@ async function onLogout(): Promise<void> {
 <template>
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white">
     <div class="flex h-14 items-center gap-3 px-4 lg:px-6">
-      <NuxtLink :to="adminPath()" class="shrink-0 font-bold whitespace-nowrap text-brand-700">MEO-Tool</NuxtLink>
+      <NuxtLink :to="adminPath()" class="shrink-0"><UiCommonLogo is-label-hidden-on-mobile /></NuxtLink>
       <span class="text-slate-300" aria-hidden="true">/</span>
       <div class="flex min-w-0 items-center gap-2">
         <span class="truncate text-sm font-medium text-slate-800">{{ org?.name }}</span>

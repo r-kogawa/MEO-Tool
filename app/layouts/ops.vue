@@ -12,7 +12,7 @@ async function onLogout(): Promise<void> {
   <div class="min-h-screen bg-slate-100">
     <header class="sticky top-0 z-30 bg-slate-900 text-white">
       <div class="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-        <NuxtLink to="/ops/organizations" class="font-bold">MEO-Tool</NuxtLink>
+        <NuxtLink to="/ops/organizations"><UiCommonLogo is-on-dark /></NuxtLink>
         <span class="rounded bg-amber-400 px-2 py-0.5 text-xs font-bold text-slate-900">運営</span>
         <div class="ml-auto flex items-center gap-3 text-sm">
           <span class="hidden text-slate-300 sm:inline">{{ user?.displayName }}</span>

@@ -70,57 +70,59 @@ function failureLabel(id: string): string {
 </script>
 
 <template>
-  <div>
-    <UiCommonPageHeader title="口コミ" description="Google の口コミを確認し、返信します（毎朝 6 時に自動で同期します）">
-      <template #actions>
-        <UiCommonButton variant="secondary" @click="isTemplatesOpen = true">テンプレート</UiCommonButton>
-        <UiCommonButton icon="refresh" variant="secondary" :is-loading="syncState.isPending.value" @click="onSync">同期</UiCommonButton>
-      </template>
-    </UiCommonPageHeader>
+  <AdminCommonGoogleRequired>
+    <div>
+      <UiCommonPageHeader title="口コミ" description="Google の口コミを確認し、返信します（毎朝 6 時に自動で同期します）">
+        <template #actions>
+          <UiCommonButton variant="secondary" @click="isTemplatesOpen = true">テンプレート</UiCommonButton>
+          <UiCommonButton icon="refresh" variant="secondary" :is-loading="syncState.isPending.value" @click="onSync">同期</UiCommonButton>
+        </template>
+      </UiCommonPageHeader>
 
-    <div class="mb-4 flex flex-wrap gap-3">
-      <AdminCommonStoreFilter v-model="storeFilter" />
-      <div class="w-full sm:w-36">
-        <UiInputSelectField v-model="replyFilter" label="返信" :options="replyOptions" is-label-hidden />
+      <div class="mb-4 flex flex-wrap gap-3">
+        <AdminCommonStoreFilter v-model="storeFilter" />
+        <div class="w-full sm:w-36">
+          <UiInputSelectField v-model="replyFilter" label="返信" :options="replyOptions" is-label-hidden />
+        </div>
+        <div class="w-full sm:w-36">
+          <UiInputSelectField v-model="ratingFilter" label="評価" :options="ratingOptions" is-label-hidden />
+        </div>
       </div>
-      <div class="w-full sm:w-36">
-        <UiInputSelectField v-model="ratingFilter" label="評価" :options="ratingOptions" is-label-hidden />
-      </div>
-    </div>
 
-    <UiCommonAlert v-if="syncState.errorMessage.value" tone="danger" class="mb-4">{{ syncState.errorMessage.value }}</UiCommonAlert>
-    <UiCommonAlert v-if="lastFailures.length > 0" tone="danger" title="処理できなかったもの" class="mb-4">
-      <ul class="list-disc pl-5">
-        <li v-for="failure in lastFailures" :key="failure.id">{{ failureLabel(failure.id) }}: {{ failure.message }}</li>
+      <UiCommonAlert v-if="syncState.errorMessage.value" tone="danger" class="mb-4">{{ syncState.errorMessage.value }}</UiCommonAlert>
+      <UiCommonAlert v-if="lastFailures.length > 0" tone="danger" title="処理できなかったもの" class="mb-4">
+        <ul class="list-disc pl-5">
+          <li v-for="failure in lastFailures" :key="failure.id">{{ failureLabel(failure.id) }}: {{ failure.message }}</li>
+        </ul>
+      </UiCommonAlert>
+
+      <div class="sticky top-14 z-10 mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2">
+        <label class="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" class="size-4" :checked="isAllSelected" @change="onSelectAll(($event.target as HTMLInputElement).checked)">
+          表示中をすべて選択（最大 {{ MAX_SELECTION }} 件）
+        </label>
+        <span class="text-sm text-slate-500">{{ selectedIds.length }} 件選択中</span>
+        <UiCommonButton class="ml-auto" size="sm" :is-disabled="selectedIds.length === 0 || selectedIds.length > MAX_SELECTION" @click="isBulkOpen = true">
+          一括返信
+        </UiCommonButton>
+      </div>
+
+      <p v-if="filteredReviews.length === 0" class="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
+        条件に合う口コミはありません。
+      </p>
+      <ul v-else class="grid gap-3">
+        <GbpReviewsReviewCard
+          v-for="review in filteredReviews"
+          :key="review.id"
+          :review="review"
+          :store-name="storeName(review.storeId)"
+          :is-selected="selectedIds.includes(review.id)"
+          @update:is-selected="onSelect(review.id, $event)"
+        />
       </ul>
-    </UiCommonAlert>
 
-    <div class="sticky top-14 z-10 mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2">
-      <label class="flex items-center gap-2 text-sm text-slate-700">
-        <input type="checkbox" class="size-4" :checked="isAllSelected" @change="onSelectAll(($event.target as HTMLInputElement).checked)">
-        表示中をすべて選択（最大 {{ MAX_SELECTION }} 件）
-      </label>
-      <span class="text-sm text-slate-500">{{ selectedIds.length }} 件選択中</span>
-      <UiCommonButton class="ml-auto" size="sm" :is-disabled="selectedIds.length === 0 || selectedIds.length > MAX_SELECTION" @click="isBulkOpen = true">
-        一括返信
-      </UiCommonButton>
+      <GbpReviewsBulkReplyModal v-model="isBulkOpen" :reviews="selectedReviews" @finished="onBulkFinished" />
+      <GbpReviewsTemplateManagerModal v-model="isTemplatesOpen" />
     </div>
-
-    <p v-if="filteredReviews.length === 0" class="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-      条件に合う口コミはありません。
-    </p>
-    <ul v-else class="grid gap-3">
-      <GbpReviewsReviewCard
-        v-for="review in filteredReviews"
-        :key="review.id"
-        :review="review"
-        :store-name="storeName(review.storeId)"
-        :is-selected="selectedIds.includes(review.id)"
-        @update:is-selected="onSelect(review.id, $event)"
-      />
-    </ul>
-
-    <GbpReviewsBulkReplyModal v-model="isBulkOpen" :reviews="selectedReviews" @finished="onBulkFinished" />
-    <GbpReviewsTemplateManagerModal v-model="isTemplatesOpen" />
-  </div>
+  </AdminCommonGoogleRequired>
 </template>

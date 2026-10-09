@@ -24,7 +24,7 @@ export const GOOGLE_CALLBACK_ERRORS: Record<string, string> = {
 }
 
 export function useGoogleConnection() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { user } = useAuth()
   const { orgId, org } = useCurrentOrg()
@@ -38,7 +38,7 @@ export function useGoogleConnection() {
   const callbackUrl = ref<string | null>(null)
 
   async function loadCallbackUrl(): Promise<void> {
-    if (isMock) {
+    if (isMock.value) {
       callbackUrl.value = 'https://asia-northeast1-<プロジェクト ID>.cloudfunctions.net/googleOAuthCallback'
       return
     }
@@ -47,7 +47,7 @@ export function useGoogleConnection() {
   }
 
   async function registerOAuthClient(clientId: string, clientSecret: string): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'updateGoogleOAuthClient', { orgId: orgId.value, clientId: clientId.trim(), clientSecret: clientSecret.trim() })
       return
     }
@@ -56,7 +56,7 @@ export function useGoogleConnection() {
   }
 
   async function removeOAuthClient(): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'deleteGoogleOAuthClient', { orgId: orgId.value })
       return
     }
@@ -76,13 +76,13 @@ export function useGoogleConnection() {
   }
 
   async function reauthorize(connectionId: string) {
-    if (!isMock) return startGoogleAuth()
+    if (!isMock.value) return startGoogleAuth()
     await mockLatency(800)
     updateGoogleConnectionReauthFunc(db.value, user.value!.uid, orgId.value, connectionId)
   }
 
   async function disconnect(connectionId: string) {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'deleteGoogleConnection', { orgId: orgId.value, connectionId })
       return
     }

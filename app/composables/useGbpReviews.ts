@@ -6,7 +6,7 @@ import { mockLatency } from '~/utils/mock/functions/shared'
 // 口コミの一覧・同期・返信（個別と一括は同じ関数）
 
 export function useGbpReviews() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { user } = useAuth()
   const { orgId, visibleStoreIds } = useCurrentOrg()
@@ -19,19 +19,19 @@ export function useGbpReviews() {
       .sort((a, b) => b.reviewCreatedAt.localeCompare(a.reviewCreatedAt)))
 
   async function syncReviews(storeIds?: string[]): Promise<BatchResult> {
-    if (!isMock) return callFunction($functions, 'updateGbpReviewsSync', { orgId: orgId.value, storeIds })
+    if (!isMock.value) return callFunction($functions, 'updateGbpReviewsSync', { orgId: orgId.value, storeIds })
     await mockLatency(600)
     return updateGbpReviewsSyncFunc(db.value, user.value!.uid, orgId.value, storeIds)
   }
 
   async function replyToReviews(items: { reviewId: string; comment: string }[]): Promise<BatchResult> {
-    if (!isMock) return callFunction($functions, 'updateGbpReviewReply', { orgId: orgId.value, items })
+    if (!isMock.value) return callFunction($functions, 'updateGbpReviewReply', { orgId: orgId.value, items })
     await mockLatency(600)
     return updateGbpReviewReplyFunc(db.value, user.value!.uid, orgId.value, items)
   }
 
   async function deleteReply(reviewId: string): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'deleteGbpReviewReply', { orgId: orgId.value, reviewId })
       return
     }

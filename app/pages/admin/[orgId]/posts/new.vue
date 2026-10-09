@@ -83,64 +83,66 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <div class="max-w-3xl space-y-6">
-    <UiCommonPageHeader title="投稿を作成" description="1 店舗を選ぶと個別投稿、複数選ぶと同じ内容で一括投稿します" :back-to="adminPath('/posts')" back-label="投稿一覧" />
+  <AdminCommonGoogleRequired>
+    <div class="max-w-3xl space-y-6">
+      <UiCommonPageHeader title="投稿を作成" description="1 店舗を選ぶと個別投稿、複数選ぶと同じ内容で一括投稿します" :back-to="adminPath('/posts')" back-label="投稿一覧" />
 
-    <UiCommonCard title="投稿する店舗">
-      <GbpInputStoreCheckboxList v-model="storeIds" :stores="linkedStores" :max-items="MAX_POST_STORES" />
-    </UiCommonCard>
+      <UiCommonCard title="投稿する店舗">
+        <GbpInputStoreCheckboxList v-model="storeIds" :stores="linkedStores" :max-items="MAX_POST_STORES" />
+      </UiCommonCard>
 
-    <UiCommonCard title="内容">
-      <div class="space-y-5">
-        <div class="w-full sm:w-60">
-          <UiInputSelectField v-model="topicType" label="種類" :options="topicOptions" />
-        </div>
-        <template v-if="hasEvent">
-          <UiInputTextField v-model="eventTitle" :label="topicType === 'OFFER' ? '特典のタイトル' : 'イベントのタイトル'" :maxlength="POST_TITLE_MAX" is-required />
-          <div class="grid gap-4 sm:grid-cols-2">
-            <UiInputTextField v-model="startAt" label="開始日時" type="datetime-local" is-required />
-            <UiInputTextField v-model="endAt" label="終了日時" type="datetime-local" is-required />
+      <UiCommonCard title="内容">
+        <div class="space-y-5">
+          <div class="w-full sm:w-60">
+            <UiInputSelectField v-model="topicType" label="種類" :options="topicOptions" />
           </div>
-        </template>
-        <UiInputTextareaField
-          v-model="summary"
-          :label="topicType === 'STANDARD' ? '本文' : '本文（任意）'"
-          :rows="6"
-          :maxlength="POST_SUMMARY_MAX"
-          :is-required="topicType === 'STANDARD'"
-        />
-        <GbpInputImageInput v-model="imageFile" :is-disabled="isPending" />
+          <template v-if="hasEvent">
+            <UiInputTextField v-model="eventTitle" :label="topicType === 'OFFER' ? '特典のタイトル' : 'イベントのタイトル'" :maxlength="POST_TITLE_MAX" is-required />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <UiInputTextField v-model="startAt" label="開始日時" type="datetime-local" is-required />
+              <UiInputTextField v-model="endAt" label="終了日時" type="datetime-local" is-required />
+            </div>
+          </template>
+          <UiInputTextareaField
+            v-model="summary"
+            :label="topicType === 'STANDARD' ? '本文' : '本文（任意）'"
+            :rows="6"
+            :maxlength="POST_SUMMARY_MAX"
+            :is-required="topicType === 'STANDARD'"
+          />
+          <GbpInputImageInput v-model="imageFile" :is-disabled="isPending" />
+        </div>
+      </UiCommonCard>
+
+      <UiCommonCard v-if="topicType === 'OFFER'" title="特典の詳細（任意）">
+        <div class="space-y-4">
+          <UiInputTextField v-model="couponCode" label="クーポンコード" :maxlength="POST_TITLE_MAX" />
+          <UiInputTextField v-model="redeemOnlineUrl" label="特典のリンク先" type="url" placeholder="https://example.com/coupon" />
+          <UiInputTextareaField v-model="termsConditions" label="利用規約" :rows="3" />
+        </div>
+      </UiCommonCard>
+
+      <UiCommonCard v-if="canUseButton" title="ボタン（任意）">
+        <div class="grid gap-4 sm:grid-cols-[12rem_1fr]">
+          <UiInputSelectField v-model="actionType" label="ボタンの種類" :options="actionOptions" />
+          <UiInputTextField v-if="needsActionUrl" v-model="actionUrl" label="リンク先" type="url" placeholder="https://example.com" is-required />
+        </div>
+      </UiCommonCard>
+
+      <UiCommonAlert v-if="errorMessage" tone="danger">{{ errorMessage }}</UiCommonAlert>
+      <UiCommonAlert v-if="failures.length > 0" tone="danger" title="投稿できなかった店舗">
+        <p>失敗した店舗だけが選択されています。内容を確認して、もう一度送信してください。</p>
+        <ul class="mt-1 list-disc pl-5">
+          <li v-for="failure in failures" :key="failure.id">{{ storeName(failure.id) }}: {{ failure.message }}</li>
+        </ul>
+      </UiCommonAlert>
+
+      <div class="flex justify-end gap-2">
+        <UiCommonButton variant="secondary" :to="adminPath('/posts')">キャンセル</UiCommonButton>
+        <UiCommonButton :is-loading="isPending" :is-disabled="!canSubmit" @click="onSubmit">
+          {{ storeIds.length > 1 ? `${storeIds.length} 店舗に投稿する` : '投稿する' }}
+        </UiCommonButton>
       </div>
-    </UiCommonCard>
-
-    <UiCommonCard v-if="topicType === 'OFFER'" title="特典の詳細（任意）">
-      <div class="space-y-4">
-        <UiInputTextField v-model="couponCode" label="クーポンコード" :maxlength="POST_TITLE_MAX" />
-        <UiInputTextField v-model="redeemOnlineUrl" label="特典のリンク先" type="url" placeholder="https://example.com/coupon" />
-        <UiInputTextareaField v-model="termsConditions" label="利用規約" :rows="3" />
-      </div>
-    </UiCommonCard>
-
-    <UiCommonCard v-if="canUseButton" title="ボタン（任意）">
-      <div class="grid gap-4 sm:grid-cols-[12rem_1fr]">
-        <UiInputSelectField v-model="actionType" label="ボタンの種類" :options="actionOptions" />
-        <UiInputTextField v-if="needsActionUrl" v-model="actionUrl" label="リンク先" type="url" placeholder="https://example.com" is-required />
-      </div>
-    </UiCommonCard>
-
-    <UiCommonAlert v-if="errorMessage" tone="danger">{{ errorMessage }}</UiCommonAlert>
-    <UiCommonAlert v-if="failures.length > 0" tone="danger" title="投稿できなかった店舗">
-      <p>失敗した店舗だけが選択されています。内容を確認して、もう一度送信してください。</p>
-      <ul class="mt-1 list-disc pl-5">
-        <li v-for="failure in failures" :key="failure.id">{{ storeName(failure.id) }}: {{ failure.message }}</li>
-      </ul>
-    </UiCommonAlert>
-
-    <div class="flex justify-end gap-2">
-      <UiCommonButton variant="secondary" :to="adminPath('/posts')">キャンセル</UiCommonButton>
-      <UiCommonButton :is-loading="isPending" :is-disabled="!canSubmit" @click="onSubmit">
-        {{ storeIds.length > 1 ? `${storeIds.length} 店舗に投稿する` : '投稿する' }}
-      </UiCommonButton>
     </div>
-  </div>
+  </AdminCommonGoogleRequired>
 </template>

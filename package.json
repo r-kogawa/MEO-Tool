@@ -5,8 +5,6 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
-    "dev:emulator": "bash scripts/dev-emulator.sh",
-    "dev:firebase": "NUXT_PUBLIC_USE_MOCK=false NUXT_PUBLIC_USE_EMULATOR=false nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",

@@ -1,48 +1,10 @@
-import type { Invitation, MemberRole, OrgType } from '~/types/domain'
+import type { Invitation, MemberRole } from '~/types/domain'
 import { invitationStatusOf } from '../../invitationStatus'
 import { createId } from '../random'
 import type { MockDb } from '../seed'
 import { MockFunctionsError, requireMember, requireOrg } from './shared'
 
-// identity/ … 組織作成・招待・メンバー権限（docs/04-features.md F-01, F-03）
-
-const DEFAULT_LIMITS = {
-  individual: { maxStores: 1, maxSurveys: 3, maxKeywords: 5, maxMembers: 1, monthlyReviewDrafts: 100, monthlyRankChecks: 200 },
-  corporate: { maxStores: 10, maxSurveys: 30, maxKeywords: 50, maxMembers: 20, monthlyReviewDrafts: 2000, monthlyRankChecks: 3000 },
-} as const
-
-interface CreateOrganizationInput {
-  uid: string
-  email: string
-  displayName: string
-  type: OrgType
-  orgName: string
-}
-
-export function createOrganizationFunc(db: MockDb, input: CreateOrganizationInput): string {
-  const now = new Date().toISOString()
-  const orgId = createId('org')
-  db.organizations.push({
-    id: orgId,
-    type: input.type,
-    name: input.orgName,
-    plan: input.type === 'individual' ? 'ライト' : 'ビジネス',
-    status: 'active',
-    limits: { ...DEFAULT_LIMITS[input.type] },
-    ownerUid: input.uid,
-    createdAt: now,
-  })
-  db.members.push({
-    orgId,
-    uid: input.uid,
-    role: 'owner',
-    storeIds: [],
-    email: input.email,
-    displayName: input.displayName,
-    joinedAt: now,
-  })
-  return orgId
-}
+// identity/ … 招待・メンバー権限（docs/04-features.md F-03）
 
 interface CreateInvitationInput {
   orgId: string

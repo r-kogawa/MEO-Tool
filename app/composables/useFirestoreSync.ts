@@ -36,7 +36,7 @@ import { createEmptyDb } from '~/utils/firebase/emptyDb'
 import { MirrorCollection } from '~/utils/firebase/mirror'
 import { toDayKey } from '~/utils/format'
 
-// 本物モードで Firestore を購読し、useAppDb() の DB に流し込む。
+// Firestore を購読し、useFirestoreDb() の DB に流し込む（画面は useAppDb() 経由で読む）。デモ中は Firebase からログアウトしているので空のまま。
 // ・ログインユーザー: 自分の所属（collectionGroup members）と所属組織のドキュメント
 // ・表示中の組織: メンバー・店舗、owner / admin なら招待と Google 連携も
 // ・アンケート: surveys / surveyVersions は組織のものすべて、responses は直近 90 日・最大 2,000 件（publicSurveys は購読しない）
@@ -58,13 +58,13 @@ function chunk<T>(items: T[], size: number): T[][] {
 /** ログイン直後の表示名の更新（updateProfile）は onAuthStateChanged が発火しないため、手動で反映する */
 export function refreshAuthUser(): void {
   const { $auth } = useNuxtApp()
-  const db = useAppDb()
+  const db = useFirestoreDb()
   if ($auth.currentUser) db.value.users = [toUser($auth.currentUser)]
 }
 
 export function startFirestoreSync(): void {
   const { $auth, $db } = useNuxtApp()
-  const db = useAppDb()
+  const db = useFirestoreDb()
   const { state } = useBackendReady()
   const router = useRouter()
 

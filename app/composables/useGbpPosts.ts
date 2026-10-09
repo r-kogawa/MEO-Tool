@@ -7,7 +7,7 @@ import { mockLatency } from '~/utils/mock/functions/shared'
 // 投稿の一覧・同期・作成（個別と一括は同じ関数）・削除と、投稿画像のアップロード
 
 export function useGbpPosts() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { user } = useAuth()
   const { orgId, visibleStoreIds } = useCurrentOrg()
@@ -20,7 +20,7 @@ export function useGbpPosts() {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
 
   async function syncPosts(storeIds?: string[]): Promise<BatchResult> {
-    if (!isMock) return callFunction($functions, 'updateGbpPostsSync', { orgId: orgId.value, storeIds })
+    if (!isMock.value) return callFunction($functions, 'updateGbpPostsSync', { orgId: orgId.value, storeIds })
     await mockLatency(600)
     return updateGbpPostsSyncFunc(db.value, user.value!.uid, orgId.value, storeIds)
   }
@@ -28,13 +28,13 @@ export function useGbpPosts() {
   /** requestId は画面ごとに 1 つ発行し、再送でも同じ値を使う（作成済みの店舗に二重投稿しない） */
   async function createPosts(requestId: string, storeIds: string[], post: GbpPostInput): Promise<BatchResult> {
     // サーバーは最大 300 秒動くため、画面が先に待ちを切らないようにする（切れると再送が並行処理になる）
-    if (!isMock) return callFunction($functions, 'createGbpPosts', { orgId: orgId.value, requestId, storeIds, post }, { timeoutMs: 310_000 })
+    if (!isMock.value) return callFunction($functions, 'createGbpPosts', { orgId: orgId.value, requestId, storeIds, post }, { timeoutMs: 310_000 })
     await mockLatency(800)
     return createGbpPostsFunc(db.value, user.value!.uid, orgId.value, requestId, storeIds, post)
   }
 
   async function deletePost(postId: string): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'deleteGbpPost', { orgId: orgId.value, postId })
       return
     }
@@ -46,7 +46,7 @@ export function useGbpPosts() {
   async function uploadImage(file: File): Promise<string> {
     const error = validatePostImage(file)
     if (error) throw new Error(error)
-    if (isMock) {
+    if (isMock.value) {
       await mockLatency()
       return URL.createObjectURL(file)
     }

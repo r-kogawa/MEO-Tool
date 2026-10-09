@@ -41,12 +41,15 @@ function writeSession(slug: string, value: { submissionId: string; result: Submi
 }
 
 export function usePublicSurvey(slug: string) {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { $db, $functions } = useNuxtApp()
 
   const loaded = ref<PublicSurvey | null>(null)
-  const isLoading = ref(!isMock)
+  // 仮データを使うのは、デモ中で、かつ仮データにその slug がある場合だけ（デモ状態が残った端末でも本番の slug は本番から読む）。
+  // ページを開くたびに呼ばれ、ページ内で変わらないため、読み込みの要否は呼んだ時点で決める
+  const isMockSurvey = isMock.value && db.value.publicSurveys.some(item => item.slug === slug)
+  const isLoading = ref(!isMockSurvey)
 
   async function load(): Promise<void> {
     try {
@@ -61,10 +64,10 @@ export function usePublicSurvey(slug: string) {
       isLoading.value = false
     }
   }
-  if (!isMock) void load()
+  if (!isMockSurvey) void load()
 
   const snapshot = computed<PublicSurvey | null>(() =>
-    isMock ? db.value.publicSurveys.find(item => item.slug === slug) ?? null : loaded.value)
+    isMockSurvey ? db.value.publicSurveys.find(item => item.slug === slug) ?? null : loaded.value)
   const availability = computed<PublicSurveyAvailability>(() => {
     if (isLoading.value) return 'loading'
     if (!snapshot.value) return 'not-found'
@@ -78,7 +81,7 @@ export function usePublicSurvey(slug: string) {
   const lastResult = ref<SubmissionResult | null>(readSession(slug)?.result ?? null)
 
   async function post(submissionId: string, answers: Answers): Promise<SubmissionResult> {
-    if (!isMock) return callFunction<object, SubmissionResult>($functions, 'postSurveyResponse', { slug, submissionId, answers })
+    if (!isMockSurvey) return callFunction<object, SubmissionResult>($functions, 'postSurveyResponse', { slug, submissionId, answers })
     await mockLatency(500)
     const posted = postSurveyResponseFunc(db.value, { slug, submissionId, answers })
     // モックの Functions は口コミ URL を返さないため、店舗から補う

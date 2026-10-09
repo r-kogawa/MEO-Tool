@@ -13,7 +13,7 @@ export type RankPeriod = typeof RANK_PERIODS[number]
 export const RANK_RANGE = RANK_CHECK_RANGE
 
 export function useRankHistory(keywordId: string) {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { orgId, canAccessStore, storeName } = useCurrentOrg()
   const { $db } = useNuxtApp()
@@ -44,7 +44,7 @@ export function useRankHistory(keywordId: string) {
   let requestId = 0
 
   async function loadResults(day: string): Promise<RankResult[]> {
-    if (isMock) return db.value.rankResults.find(item => item.keywordId === keywordId && item.checkedOn === day)?.results ?? []
+    if (isMock.value) return db.value.rankResults.find(item => item.keywordId === keywordId && item.checkedOn === day)?.results ?? []
     const snapshot = await getDoc(doc($db, `organizations/${orgId.value}/rankResults/${keywordId}_${day}`))
     return snapshot.exists() ? toRankResults(snapshot.data()).results : []
   }

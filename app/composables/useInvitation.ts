@@ -14,11 +14,14 @@ interface InvitationLookup {
 }
 
 export function useInvitation(token: string) {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { user } = useAuth()
   const { $auth, $functions } = useNuxtApp()
   const { waitForOrg } = useBackendReady()
+
+  // 仮データを使うのは、デモ中で、かつ仮データにそのトークンの招待がある場合だけ
+  const isMockInvitation = computed(() => isMock.value && db.value.invitations.some(item => item.token === token))
 
   const mockLookup = computed<InvitationLookup>(() => {
     try {
@@ -38,8 +41,11 @@ export function useInvitation(token: string) {
 
   // 本物モードでは招待コレクションを読めない（owner / admin のみ）ため、Functions で確認する
   const remoteLookup = ref<InvitationLookup>({ invitation: null, org: null, storeNames: [], errorMessage: null })
-  const isLoading = ref(!isMock)
-  if (!isMock) {
+  const isLoading = ref(!isMockInvitation.value)
+  // 仮データを使わなくなった時点（デモ状態が残っていない、またはデモから抜けた）で 1 回だけ Functions から読む
+  watch(isMockInvitation, (isMockNow) => {
+    if (isMockNow) return
+    isLoading.value = true
     callFunction<object, { invitation: Invitation; org: { name: string; type: OrgType }; storeNames: string[] }>(
       $functions,
       'getInvitation',
@@ -48,13 +54,13 @@ export function useInvitation(token: string) {
       .then((result) => { remoteLookup.value = { ...result, errorMessage: null } })
       .catch((error) => { remoteLookup.value = { invitation: null, org: null, storeNames: [], errorMessage: errorMessageOf(error) } })
       .finally(() => { isLoading.value = false })
-  }
+  }, { immediate: true })
 
-  const lookup = computed(() => (isMock ? mockLookup.value : remoteLookup.value))
+  const lookup = computed(() => (isMockInvitation.value ? mockLookup.value : remoteLookup.value))
 
   /** 受諾して参加した組織 ID を返す */
   async function accept(): Promise<string> {
-    if (!isMock) {
+    if (!isMockInvitation.value) {
       await requireVerifiedEmail()
       const { orgId } = await callFunction<object, { orgId: string }>($functions, 'updateInvitationAccept', {
         token,

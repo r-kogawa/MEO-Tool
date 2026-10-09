@@ -1,9 +1,10 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { KeyManagementServiceClient } from '@google-cloud/kms'
 import { fail } from './errors'
+import { isFullyEmulated } from './emulator'
 
 // OAuth のクライアントシークレット・refresh token の暗号化。
-// 本番は Cloud KMS（KMS_KEY_NAME）、Emulator とテストはローカル AES-256-GCM を使う。
+// 本番は Cloud KMS（KMS_KEY_NAME）。SECRET_CIPHER=local、または Functions と Firestore の両方が Emulator のとき（isFullyEmulated）はローカル AES-256-GCM を使う。
 
 export type CipherKind = 'kms' | 'local'
 
@@ -63,7 +64,7 @@ function createKmsCipher(keyName: string): SecretCipher {
 let cached: SecretCipher | null = null
 
 function isLocalAllowed(): boolean {
-  return process.env.SECRET_CIPHER === 'local' || process.env.FUNCTIONS_EMULATOR === 'true'
+  return process.env.SECRET_CIPHER === 'local' || isFullyEmulated()
 }
 
 function getCipher(): SecretCipher {

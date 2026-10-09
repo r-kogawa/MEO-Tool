@@ -18,14 +18,14 @@ export interface ResponseFilters {
 }
 
 export function useResponses(surveyId: string) {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const { $functions } = useNuxtApp()
   const db = useAppDb()
   const { user } = useAuth()
   const { orgId, canAccessStore } = useCurrentOrg()
 
   /** 本物モードは購読の範囲（直近 90 日・2,000 件）だけを表示している */
-  const isWindowed = !isMock
+  const isWindowed = computed(() => !isMock.value)
 
   const filters = reactive<ResponseFilters>({ days: 30, eligibility: 'all', redirect: 'all' })
   const page = ref(1)
@@ -63,7 +63,7 @@ export function useResponses(surveyId: string) {
 
   /** 本物モードはサーバーで検索し直す（期間だけで絞り込む。最大 5,000 件） */
   async function fetchCsv(): Promise<string> {
-    if (!isMock) {
+    if (!isMock.value) {
       const from = filters.days === null ? null : new Date(Date.now() - filters.days * 86_400_000).toISOString()
       const { csv } = await callFunction<object, { csv: string }>($functions, 'getResponsesCsv', { orgId: orgId.value, surveyId, from })
       return csv

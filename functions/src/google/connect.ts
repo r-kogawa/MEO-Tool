@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore'
 import { logger } from 'firebase-functions'
+import { appUrl } from '../shared/appUrl'
 import { writeAuditLog } from '../shared/audit'
 import type { Caller } from '../shared/auth'
 import { fail } from '../shared/errors'
@@ -23,10 +24,6 @@ interface OAuthStateDoc {
 }
 
 type CallbackErrorCode = 'access_denied' | 'invalid_client' | 'exchange_failed' | 'no_refresh_token' | 'gbp_accounts_failed' | 'save_failed'
-
-function appUrl(path: string): string {
-  return `${(process.env.ADMIN_APP_URL ?? '').replace(/\/$/, '')}${path}`
-}
 
 function settingsUrl(orgId: string, query: string): string {
   return appUrl(`/admin/${orgId}/settings/google?${query}`)

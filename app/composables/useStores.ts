@@ -6,7 +6,7 @@ import { mockLatency } from '~/utils/mock/functions/shared'
 // F-05 店舗の取込・管理
 
 export function useStores() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const { $functions } = useNuxtApp()
   const db = useAppDb()
   const { user } = useAuth()
@@ -28,14 +28,14 @@ export function useStores() {
   }
 
   async function fetchGbpCandidates(): Promise<GbpLocationCandidate[]> {
-    if (!isMock) return callFunction($functions, 'getGbpLocations', { orgId: orgId.value })
+    if (!isMock.value) return callFunction($functions, 'getGbpLocations', { orgId: orgId.value })
     await mockLatency()
     return getGbpLocationsFunc(db.value, user.value!.uid, orgId.value)
   }
 
   /** 取り込んだ店舗の件数（length）を持つ値を返す */
   async function importStores(locationNames: string[]): Promise<{ length: number }> {
-    if (!isMock) {
+    if (!isMock.value) {
       const { storeIds } = await callFunction<object, { storeIds: string[] }>($functions, 'createStoresFromGbp', { orgId: orgId.value, locationNames })
       return storeIds
     }
@@ -44,7 +44,7 @@ export function useStores() {
   }
 
   async function archiveStore(storeId: string) {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'updateStoreArchive', { orgId: orgId.value, storeId })
       return
     }

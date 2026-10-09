@@ -1,4 +1,4 @@
-// 本物モードで、認証状態と所属組織の初回読み込みが終わったかを持つ。ミドルウェアはこれを待ってから判定する。
+// Firebase Auth の状態と所属組織の初回読み込みが終わったかを持つ。デモ中は待たない。
 
 interface BackendReadyState {
   isAuthReady: boolean
@@ -24,14 +24,14 @@ function waitUntil(isDone: () => boolean, timeoutMs?: number): Promise<void> {
 }
 
 export function useBackendReady() {
-  const isMock = useRuntimeConfig().public.useMock
-  const state = useState<BackendReadyState>('backend-ready', () => ({ isAuthReady: isMock, isOrgsReady: isMock }))
-  const db = useAppDb()
+  const { isMock } = useDemoSession()
+  const state = useState<BackendReadyState>('backend-ready', () => ({ isAuthReady: false, isOrgsReady: false }))
+  const db = useFirestoreDb()
 
   return {
     state,
-    waitForAuth: () => waitUntil(() => state.value.isAuthReady),
-    waitForOrgs: () => waitUntil(() => state.value.isOrgsReady),
+    waitForAuth: () => waitUntil(() => isMock.value || state.value.isAuthReady),
+    waitForOrgs: () => waitUntil(() => isMock.value || state.value.isOrgsReady),
     /** 作成・受諾した組織が購読に届くまで待つ（直後の画面遷移でミドルウェアに弾かれないように） */
     waitForOrg: (orgId: string, timeoutMs = 10_000) =>
       waitUntil(() => db.value.organizations.some(org => org.id === orgId)

@@ -13,10 +13,6 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      // false で Firebase に本接続する（既定はモック）。対象は認証・組織・メンバー（docs/superpowers/specs/2026-10-07-gbp-integration-design.md 3.1）
-      useMock: process.env.NUXT_PUBLIC_USE_MOCK !== 'false',
-      // true でクライアントを Firebase Emulator に接続する
-      useEmulator: process.env.NUXT_PUBLIC_USE_EMULATOR === 'true',
       // GA4 の測定 ID（G-XXXXXXX）。未設定ならアクセス解析を読み込まない
       gaMeasurementId: process.env.GA_MEASUREMENT_ID || '',
       slackChannelId: process.env.SLACK_CHANNEL_ID || '',

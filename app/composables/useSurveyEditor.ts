@@ -33,7 +33,7 @@ export const COMPARATORS_BY_TYPE: Record<QuestionType, Comparator[]> = {
 }
 
 export function useSurveyEditor(surveyId: string) {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const { $functions } = useNuxtApp()
   const db = useAppDb()
   const survey = computed(() => db.value.surveys.find(item => item.id === surveyId) ?? null)
@@ -96,7 +96,7 @@ export function useSurveyEditor(surveyId: string) {
   }
 
   async function save(): Promise<void> {
-    if (!isMock) return saveToServer()
+    if (!isMock.value) return saveToServer()
     const target = survey.value
     if (!target || !draft.value) return
     saveToMock(target, draft.value)
@@ -112,7 +112,7 @@ export function useSurveyEditor(surveyId: string) {
     saveState.value = 'unsaved'
     clearTimeout(timer)
     timer = setTimeout(() => {
-      if (!isMock) {
+      if (!isMock.value) {
         void save()
         return
       }

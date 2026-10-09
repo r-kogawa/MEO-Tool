@@ -61,7 +61,6 @@ export const DEMO_ACCOUNTS = [
   { uid: 'u-kobayashi', label: '個人 / オーナー', description: 'カフェ こもれび（1 店舗）' },
   { uid: 'u-tanaka', label: '法人 / オーナー', description: '株式会社ハナミ食堂（3 店舗）' },
   { uid: 'u-sato', label: '法人 / スタッフ', description: '渋谷店のみ担当' },
-  { uid: 'u-ops', label: '運営', description: '全組織を横断して管理' },
 ] as const
 
 export function buildReviewUrl(placeId: string): string {

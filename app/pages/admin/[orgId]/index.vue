@@ -59,130 +59,128 @@ const hasStores = computed(() => visibleStores.value.length > 0)
       <template v-else>担当店舗が割り当てられていません。管理者にお問い合わせください。</template>
     </UiCommonAlert>
 
-    <template v-else>
-      <!-- フィルタ（1 行・グラフより上） -->
-      <div class="flex flex-wrap items-center gap-3">
-        <div class="inline-flex rounded-lg border border-slate-300 bg-white p-0.5" role="group" aria-label="集計期間">
-          <button
-            v-for="days in DASHBOARD_PERIODS"
-            :key="days"
-            type="button"
-            class="rounded-md px-3 py-1.5 text-sm"
-            :class="period === days ? 'bg-brand-600 font-medium text-white' : 'text-slate-600 hover:bg-slate-50'"
-            :aria-pressed="period === days"
-            @click="period = days"
-          >
-            直近 {{ days }} 日
-          </button>
-        </div>
-        <AdminCommonStoreFilter v-model="storeId" />
-        <p v-if="singleStore" class="text-sm text-slate-500">{{ singleStore.name }}</p>
+    <!-- フィルタ（1 行・グラフより上） -->
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="inline-flex rounded-lg border border-slate-300 bg-white p-0.5" role="group" aria-label="集計期間">
+        <button
+          v-for="days in DASHBOARD_PERIODS"
+          :key="days"
+          type="button"
+          class="rounded-md px-3 py-1.5 text-sm"
+          :class="period === days ? 'bg-brand-600 font-medium text-white' : 'text-slate-600 hover:bg-slate-50'"
+          :aria-pressed="period === days"
+          @click="period = days"
+        >
+          直近 {{ days }} 日
+        </button>
       </div>
+      <AdminCommonStoreFilter v-model="storeId" />
+      <p v-if="singleStore" class="text-sm text-slate-500">{{ singleStore.name }}</p>
+    </div>
 
-      <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <UiCommonStatCard label="回答数" :value="current.total" :diff="current.total - previous.total" diff-unit="件" sub="前期間比" />
-        <UiCommonStatCard
-          label="条件合致率"
-          :value="eligibleRate === null ? '—' : `${eligibleRate}%`"
-          :diff="eligibleRateDiff"
-          diff-unit="pt"
-          :sub="`${current.eligible} 件が合致`"
-        />
-        <UiCommonStatCard
-          label="Google 遷移数"
-          :value="current.redirected"
-          :diff="current.redirected - previous.redirected"
-          diff-unit="件"
-          :sub="`合致者の ${formatPercent(current.redirected, current.eligible)}`"
-        />
-        <UiCommonStatCard label="平均評価" :value="averageRating === null ? '—' : `★${averageRating.toFixed(1)}`" sub="総合満足度（5 段階）" />
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <UiCommonStatCard label="回答数" :value="current.total" :diff="current.total - previous.total" diff-unit="件" sub="前期間比" />
+      <UiCommonStatCard
+        label="条件合致率"
+        :value="eligibleRate === null ? '—' : `${eligibleRate}%`"
+        :diff="eligibleRateDiff"
+        diff-unit="pt"
+        :sub="`${current.eligible} 件が合致`"
+      />
+      <UiCommonStatCard
+        label="Google 遷移数"
+        :value="current.redirected"
+        :diff="current.redirected - previous.redirected"
+        diff-unit="件"
+        :sub="`合致者の ${formatPercent(current.redirected, current.eligible)}`"
+      />
+      <UiCommonStatCard label="平均評価" :value="averageRating === null ? '—' : `★${averageRating.toFixed(1)}`" sub="総合満足度（5 段階）" />
+    </div>
+
+    <!-- 法人: 店舗横断の比較表 -->
+    <UiCommonCard
+      v-if="isCorporate && hasMultipleStores && storeId === null"
+      title="店舗別の比較"
+      :description="`直近 ${period} 日の回答と、最も順位の高いキーワード`"
+      is-flush
+    >
+      <div class="relative overflow-x-auto">
+        <table class="w-full min-w-[640px] text-sm">
+          <thead class="bg-slate-50 text-left text-xs text-slate-500">
+            <tr>
+              <th scope="col" class="px-5 py-2.5 font-medium">店舗</th>
+              <th scope="col" class="px-3 py-2.5 text-right font-medium">回答数</th>
+              <th scope="col" class="px-3 py-2.5 text-right font-medium">条件合致率</th>
+              <th scope="col" class="px-3 py-2.5 text-right font-medium">Google 遷移数</th>
+              <th scope="col" class="px-5 py-2.5 font-medium">最上位キーワード</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="row in storeComparison" :key="row.store.id" class="hover:bg-slate-50">
+              <th scope="row" class="px-5 py-3 text-left font-medium">
+                <NuxtLink :to="adminPath(`/stores/${row.store.id}`)" class="hover:text-brand-700 hover:underline">{{ row.store.name }}</NuxtLink>
+              </th>
+              <td class="px-3 py-3 text-right tabular-nums">{{ row.total }}</td>
+              <td class="px-3 py-3 text-right tabular-nums">{{ formatPercent(row.eligible, row.total) }}</td>
+              <td class="px-3 py-3 text-right tabular-nums">{{ row.redirected }}</td>
+              <td class="px-5 py-3">
+                <span v-if="row.bestKeyword" class="flex items-center gap-2">
+                  <span class="text-slate-700">{{ row.bestKeyword.keyword.keyword }}</span>
+                  <span class="font-semibold tabular-nums">{{ row.bestKeyword.latest?.rank }}位</span>
+                  <RankingCommonRankDiff :diff="row.bestKeyword.dayDiff" label="前日比" />
+                </span>
+                <span v-else class="text-slate-400">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+    </UiCommonCard>
 
-      <!-- 法人: 店舗横断の比較表 -->
-      <UiCommonCard
-        v-if="isCorporate && hasMultipleStores && storeId === null"
-        title="店舗別の比較"
-        :description="`直近 ${period} 日の回答と、最も順位の高いキーワード`"
-        is-flush
-      >
-        <div class="relative overflow-x-auto">
-          <table class="w-full min-w-[640px] text-sm">
-            <thead class="bg-slate-50 text-left text-xs text-slate-500">
-              <tr>
-                <th scope="col" class="px-5 py-2.5 font-medium">店舗</th>
-                <th scope="col" class="px-3 py-2.5 text-right font-medium">回答数</th>
-                <th scope="col" class="px-3 py-2.5 text-right font-medium">条件合致率</th>
-                <th scope="col" class="px-3 py-2.5 text-right font-medium">Google 遷移数</th>
-                <th scope="col" class="px-5 py-2.5 font-medium">最上位キーワード</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="row in storeComparison" :key="row.store.id" class="hover:bg-slate-50">
-                <th scope="row" class="px-5 py-3 text-left font-medium">
-                  <NuxtLink :to="adminPath(`/stores/${row.store.id}`)" class="hover:text-brand-700 hover:underline">{{ row.store.name }}</NuxtLink>
-                </th>
-                <td class="px-3 py-3 text-right tabular-nums">{{ row.total }}</td>
-                <td class="px-3 py-3 text-right tabular-nums">{{ formatPercent(row.eligible, row.total) }}</td>
-                <td class="px-3 py-3 text-right tabular-nums">{{ row.redirected }}</td>
-                <td class="px-5 py-3">
-                  <span v-if="row.bestKeyword" class="flex items-center gap-2">
-                    <span class="text-slate-700">{{ row.bestKeyword.keyword.keyword }}</span>
-                    <span class="font-semibold tabular-nums">{{ row.bestKeyword.latest?.rank }}位</span>
-                    <RankingCommonRankDiff :diff="row.bestKeyword.dayDiff" label="前日比" />
-                  </span>
-                  <span v-else class="text-slate-400">—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <UiCommonCard title="主要キーワードの順位" description="最新の計測結果と前日比">
+        <template #actions>
+          <NuxtLink :to="adminPath('/rankings')" class="text-sm text-brand-700 hover:underline">すべて見る</NuxtLink>
+        </template>
+        <p v-if="topKeywords.length === 0" class="text-sm text-slate-500">
+          計測中のキーワードはありません。
+          <NuxtLink v-if="canManage" :to="adminPath('/rankings')" class="text-brand-700 underline">キーワードを追加する</NuxtLink>
+        </p>
+        <ul v-else class="divide-y divide-slate-100">
+          <li v-for="row in topKeywords" :key="row.keyword.id">
+            <NuxtLink :to="adminPath(`/rankings/${row.keyword.id}`)" class="flex items-center gap-3 py-2.5 hover:bg-slate-50">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-slate-800">{{ row.keyword.keyword }}</p>
+                <p v-if="hasMultipleStores" class="truncate text-xs text-slate-500">{{ row.storeName }}</p>
+              </div>
+              <RankingCommonRankTrendChart variant="spark" :points="row.recentPoints" :range="RANK_RANGE" :label="`${row.keyword.keyword} の順位推移`" />
+              <span class="w-16 text-right text-sm font-semibold tabular-nums">
+                {{ row.latest?.rank == null ? '圏外' : `${row.latest.rank}位` }}
+              </span>
+              <span class="w-10 text-right"><RankingCommonRankDiff :diff="row.dayDiff" label="前日比" /></span>
+            </NuxtLink>
+          </li>
+        </ul>
       </UiCommonCard>
 
-      <div class="grid gap-6 lg:grid-cols-2">
-        <UiCommonCard title="主要キーワードの順位" description="最新の計測結果と前日比">
-          <template #actions>
-            <NuxtLink :to="adminPath('/rankings')" class="text-sm text-brand-700 hover:underline">すべて見る</NuxtLink>
-          </template>
-          <p v-if="topKeywords.length === 0" class="text-sm text-slate-500">
-            計測中のキーワードはありません。
-            <NuxtLink v-if="canManage" :to="adminPath('/rankings')" class="text-brand-700 underline">キーワードを追加する</NuxtLink>
-          </p>
-          <ul v-else class="divide-y divide-slate-100">
-            <li v-for="row in topKeywords" :key="row.keyword.id">
-              <NuxtLink :to="adminPath(`/rankings/${row.keyword.id}`)" class="flex items-center gap-3 py-2.5 hover:bg-slate-50">
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-slate-800">{{ row.keyword.keyword }}</p>
-                  <p v-if="hasMultipleStores" class="truncate text-xs text-slate-500">{{ row.storeName }}</p>
-                </div>
-                <RankingCommonRankTrendChart variant="spark" :points="row.recentPoints" :range="RANK_RANGE" :label="`${row.keyword.keyword} の順位推移`" />
-                <span class="w-16 text-right text-sm font-semibold tabular-nums">
-                  {{ row.latest?.rank == null ? '圏外' : `${row.latest.rank}位` }}
-                </span>
-                <span class="w-10 text-right"><RankingCommonRankDiff :diff="row.dayDiff" label="前日比" /></span>
-              </NuxtLink>
-            </li>
-          </ul>
-        </UiCommonCard>
-
-        <UiCommonCard title="公開中のアンケート">
-          <template #actions>
-            <NuxtLink :to="adminPath('/surveys')" class="text-sm text-brand-700 hover:underline">すべて見る</NuxtLink>
-          </template>
-          <p v-if="publishedSurveys.length === 0" class="text-sm text-slate-500">公開中のアンケートはありません。</p>
-          <ul v-else class="divide-y divide-slate-100">
-            <li v-for="survey in publishedSurveys" :key="survey.id">
-              <NuxtLink :to="adminPath(`/surveys/${survey.id}`)" class="flex items-center gap-3 py-2.5 hover:bg-slate-50">
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-slate-800">{{ survey.title }}</p>
-                  <p class="truncate text-xs text-slate-500">{{ storeName(survey.storeId) }}</p>
-                </div>
-                <UiCommonBadge v-if="survey.hasUnpublishedChanges" tone="warning">未公開の変更あり</UiCommonBadge>
-                <AdminCommonSurveyStatusBadge :status="survey.status" />
-              </NuxtLink>
-            </li>
-          </ul>
-        </UiCommonCard>
-      </div>
-    </template>
+      <UiCommonCard title="公開中のアンケート">
+        <template #actions>
+          <NuxtLink :to="adminPath('/surveys')" class="text-sm text-brand-700 hover:underline">すべて見る</NuxtLink>
+        </template>
+        <p v-if="publishedSurveys.length === 0" class="text-sm text-slate-500">公開中のアンケートはありません。</p>
+        <ul v-else class="divide-y divide-slate-100">
+          <li v-for="survey in publishedSurveys" :key="survey.id">
+            <NuxtLink :to="adminPath(`/surveys/${survey.id}`)" class="flex items-center gap-3 py-2.5 hover:bg-slate-50">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-slate-800">{{ survey.title }}</p>
+                <p class="truncate text-xs text-slate-500">{{ storeName(survey.storeId) }}</p>
+              </div>
+              <UiCommonBadge v-if="survey.hasUnpublishedChanges" tone="warning">未公開の変更あり</UiCommonBadge>
+              <AdminCommonSurveyStatusBadge :status="survey.status" />
+            </NuxtLink>
+          </li>
+        </ul>
+      </UiCommonCard>
+    </div>
   </div>
 </template>

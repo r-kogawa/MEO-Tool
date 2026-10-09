@@ -26,7 +26,7 @@ const storeIds = ref<string[]>([])
 const emailError = ref<string | null>(null)
 const storeError = ref<string | null>(null)
 const inviteState = useActionState()
-const lastInvitation = ref<Invitation | null>(null)
+const lastInvitation = ref<(Invitation & { isMailSent: boolean }) | null>(null)
 
 const roleOptions = [
   { value: 'admin' as const, label: '管理者（全店舗・設定を管理）' },
@@ -42,7 +42,7 @@ async function onInvite(): Promise<void> {
   lastInvitation.value = created
   email.value = ''
   storeIds.value = []
-  show('招待を作成しました')
+  show(created.isMailSent ? '招待メールを送信しました' : '招待を作成しました')
 }
 
 // メンバー編集・削除
@@ -132,8 +132,13 @@ function storeNames(ids: string[]): string {
           <UiInputSelectField v-model="role" label="ロール" :options="roleOptions" />
           <SettingsInputStoreCheckboxGroup v-if="role === 'staff'" v-model="storeIds" :error="storeError" />
           <UiCommonAlert v-if="inviteState.errorMessage.value" tone="danger">{{ inviteState.errorMessage.value }}</UiCommonAlert>
-          <UiCommonAlert v-if="lastInvitation" tone="success" title="招待を作成しました">
-            本番では {{ lastInvitation.email }} に招待メールが届きます。デモ版では下の URL を共有してください。
+          <UiCommonAlert
+            v-if="lastInvitation"
+            :tone="lastInvitation.isMailSent ? 'success' : 'warning'"
+            :title="lastInvitation.isMailSent ? '招待メールを送信しました' : '招待を作成しました（メールは送信できませんでした）'"
+          >
+            <template v-if="lastInvitation.isMailSent">{{ lastInvitation.email }} 宛てに招待 URL を送りました。届かない場合は、下の URL を直接共有してください。</template>
+            <template v-else>{{ lastInvitation.email }} さんに下の URL を直接共有してください。</template>
             <span class="mt-2 flex flex-wrap items-center gap-2">
               <code class="rounded bg-white px-2 py-1 text-xs break-all">{{ invitationUrl(lastInvitation.token) }}</code>
               <UiCommonButton size="sm" variant="secondary" icon="copy" @click="copyToClipboard(invitationUrl(lastInvitation.token), '招待 URL をコピーしました')">

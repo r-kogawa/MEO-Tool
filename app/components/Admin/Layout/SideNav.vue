@@ -17,7 +17,7 @@ const { groups, isActive } = useAdminNav()
         >
           <UiCommonIcon :name="item.icon" size-class="size-4.5" />
           {{ item.label }}
-          <span v-if="item.isComingSoon" class="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">準備中</span>
+          <span v-if="item.isGoogleUnlinked" class="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">未連携</span>
         </NuxtLink>
       </div>
     </div>

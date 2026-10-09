@@ -7,13 +7,15 @@ import { mockLatency } from '~/utils/mock/functions/shared'
 // 案内画面には「Google に口コミを書く」ボタンだけを置く
 
 export function useReviewDraft(slug: string) {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { $functions } = useNuxtApp()
 
   /** 遷移を記録してから Google の口コミ画面を開く。記録は遷移を妨げないよう待たない（失敗しても回答者には見せない） */
   function openGoogle(responseId: string, reviewUrl: string): void {
-    const record: Promise<unknown> = isMock
+    // 仮データの回答（デモ中で、かつ仮データにその slug がある）だけ仮の処理にする
+    const isMockSurvey = isMock.value && db.value.publicSurveys.some(item => item.slug === slug)
+    const record: Promise<unknown> = isMockSurvey
       ? mockLatency(100).then(() => postReviewRedirectFunc(db.value, responseId))
       : callFunction($functions, 'postReviewRedirect', { slug, submissionId: responseId })
     void record.catch(() => {})

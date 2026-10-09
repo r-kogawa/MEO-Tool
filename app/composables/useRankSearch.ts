@@ -13,7 +13,7 @@ const STALE_CHECK_INTERVAL_MS = 30_000
 const MOCK_CHECK_MS = 2000
 
 export function useRankSearch() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { user } = useAuth()
   const { orgId } = useCurrentOrg()
@@ -38,7 +38,7 @@ export function useRankSearch() {
   const current = computed(() => searches.value.find(item => item.id === currentId.value) ?? null)
 
   async function startSearch(input: { keyword: string; searchLocation: SearchLocation; storeId: string | null }): Promise<void> {
-    if (!isMock) {
+    if (!isMock.value) {
       const { id } = await callFunction<unknown, { id: string }>($functions, 'createRankSearch', { orgId: orgId.value, ...input })
       currentId.value = id
       return

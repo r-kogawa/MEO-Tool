@@ -32,7 +32,7 @@ function diff(current: number | null | undefined, previous: number | null | unde
 }
 
 export function useRankKeywords() {
-  const isMock = useRuntimeConfig().public.useMock
+  const { isMock } = useDemoSession()
   const db = useAppDb()
   const { user } = useAuth()
   const { orgId, canAccessStore, storeName } = useCurrentOrg()
@@ -61,7 +61,7 @@ export function useRankKeywords() {
       .sort((a, b) => a.storeName.localeCompare(b.storeName, 'ja') || a.keyword.keyword.localeCompare(b.keyword.keyword, 'ja')))
 
   async function createKeyword(input: { storeId: string; keyword: string; searchLocation: SearchLocation }) {
-    if (!isMock) {
+    if (!isMock.value) {
       return callFunction<unknown, { id: string; keyword: string; isChecking: boolean; checkError?: 'limit' | 'unavailable' }>($functions, 'createRankKeyword', { orgId: orgId.value, ...input })
     }
     await mockLatency(800)
@@ -69,7 +69,7 @@ export function useRankKeywords() {
   }
 
   async function setActive(keywordId: string, isActive: boolean) {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'updateRankKeywordActive', { orgId: orgId.value, keywordId, isActive })
       return
     }
@@ -78,7 +78,7 @@ export function useRankKeywords() {
   }
 
   async function deleteKeyword(keywordId: string) {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'deleteRankKeyword', { orgId: orgId.value, keywordId })
       return
     }
@@ -88,7 +88,7 @@ export function useRankKeywords() {
 
   /** 本物モードは計測を受け付けるだけ（結果は購読で届く）。モックはその場で終える */
   async function checkNow(keywordId: string): Promise<'done' | 'started'> {
-    if (!isMock) {
+    if (!isMock.value) {
       await callFunction($functions, 'postRankCheck', { orgId: orgId.value, keywordId })
       return 'started'
     }

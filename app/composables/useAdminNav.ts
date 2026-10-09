@@ -22,19 +22,6 @@ export interface AdminNavGroup {
   items: AdminNavItem[]
 }
 
-/**
- * 本物モード（Firebase 接続）で動く管理画面。ここに無い画面は「準備中」を表示する。
- * パスは /admin/{orgId} より後ろの部分。接続した機能を増やしたらここに足す
- */
-const FIREBASE_READY_PATHS = ['/settings/organization', '/settings/members', '/settings/google', '/stores', '/profiles', '/reviews', '/posts', '/rankings', '/surveys']
-
-/** 本物モードで未接続の画面を開いたときの移動先（org-ready.global.ts） */
-export const COMING_SOON_PATH = '/coming-soon'
-
-export function isFirebaseReadyPath(subPath: string): boolean {
-  return FIREBASE_READY_PATHS.some(path => subPath === path || subPath.startsWith(`${path}/`))
-}
-
 const NAV_GROUPS: AdminNavGroup[] = [
   {
     label: 'メイン',
@@ -77,14 +64,14 @@ export function isAllowedFor(
 export function useAdminNav() {
   const { org, role, adminPath } = useCurrentOrg()
   const route = useRoute()
-  const isMock = useRuntimeConfig().public.useMock
+  const { isWaitingForGoogle } = useGoogleRequired()
 
   const groups = computed(() =>
     NAV_GROUPS.map(group => ({
       label: group.label,
       items: group.items
         .filter(item => isAllowedFor(item, role.value, org.value?.type ?? null))
-        .map(item => ({ ...item, to: adminPath(item.path), isComingSoon: !isMock && !isFirebaseReadyPath(item.path) })),
+        .map(item => ({ ...item, to: adminPath(item.path), isGoogleUnlinked: isWaitingForGoogle.value && isGoogleRequiredPath(item.path) })),
     })).filter(group => group.items.length > 0))
 
   const primaryItems = computed(() => groups.value.flatMap(group => group.items).filter(item => item.isPrimary))
