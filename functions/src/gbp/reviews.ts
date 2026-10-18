@@ -33,6 +33,17 @@ function toTimestamp(iso: string | undefined): Timestamp | null {
   return iso ? Timestamp.fromDate(new Date(iso)) : null
 }
 
+const TRANSLATED_PREFIX = '(Translated by Google)'
+const ORIGINAL_MARKER = '\n\n(Original)\n'
+
+/** GBP は外国語の口コミを「(Translated by Google) 訳文 (Original) 原文」で返すため、原文だけを残す */
+export function toOriginalComment(comment: string | undefined): string | null {
+  if (comment === undefined) return null
+  const markerAt = comment.indexOf(ORIGINAL_MARKER)
+  if (!comment.startsWith(TRANSLATED_PREFIX) || markerAt === -1) return comment
+  return comment.slice(markerAt + ORIGINAL_MARKER.length)
+}
+
 export function toReviewDoc(orgId: string, storeId: string, review: GbpReview): Record<string, unknown> {
   const isAnonymous = review.reviewer.isAnonymous === true
   return {
@@ -43,7 +54,7 @@ export function toReviewDoc(orgId: string, storeId: string, review: GbpReview): 
     reviewerPhotoUrl: isAnonymous ? null : review.reviewer.profilePhotoUrl ?? null,
     isAnonymous,
     starRating: starRatingToNumber(review.starRating),
-    comment: review.comment ?? null,
+    comment: toOriginalComment(review.comment),
     reviewCreatedAt: toTimestamp(review.createTime),
     reviewUpdatedAt: toTimestamp(review.updateTime),
     reply: review.reviewReply ? { comment: review.reviewReply.comment, updatedAt: toTimestamp(review.reviewReply.updateTime) } : null,
@@ -123,7 +134,7 @@ export async function updateGbpReviewsSyncFunc(
   const orgId = requireId(input.orgId, '組織 ID')
   await requireOrg(db, orgId)
   const member = await requireMember(db, orgId, caller.uid)
-  const storeIds = input.storeIds === undefined ? undefined : requireStringArray(input.storeIds, '店舗', 100)
+  const storeIds = input.storeIds == null ? undefined : requireStringArray(input.storeIds, '店舗', 100)
   return syncReviewsForStores(db, orgId, await loadGbpStores(db, orgId, member, storeIds), deps)
 }
 

@@ -20,6 +20,7 @@ const { groups, isActive } = useAdminNav()
           <span v-if="item.isGoogleUnlinked" class="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">未連携</span>
         </NuxtLink>
       </div>
+      <NuxtLink to="/terms" target="_blank" rel="noopener" class="block border-t border-slate-100 px-3 pt-4 text-xs text-slate-400 hover:text-brand-600">利用規約</NuxtLink>
     </div>
   </nav>
 </template>

@@ -164,7 +164,7 @@ export async function getInvitationFunc(
   }
 }
 
-/** 招待の受諾。招待されたメールアドレスのアカウントだけが受諾できる */
+/** 招待の受諾。招待されたメールアドレスのアカウントだけが受諾できる（招待 URL を持っていることで本人とみなし、メールアドレスの確認は求めない） */
 export async function updateInvitationAcceptFunc(db: Firestore, caller: Caller, data: unknown): Promise<{ orgId: string }> {
   const input = asObject(data)
   const token = requireString(input.token, '招待トークン', 128)
@@ -179,10 +179,6 @@ export async function updateInvitationAcceptFunc(db: Firestore, caller: Caller, 
     await requireOrg(db, invitation.orgId, tx)
 
     if (!isActivePending(invitation)) fail('failed-precondition', 'この招待は無効です（期限切れ・取消済み・受諾済み）。')
-    // メールアドレスの一致で本人と判定するため、所有を確認済みのアカウントに限る（招待 URL が転送された場合のなりすまし対策）
-    if (!caller.isEmailVerified) {
-      fail('failed-precondition', 'メールアドレスの確認が完了していません。確認メールのリンクを開いてから、もう一度お試しください。')
-    }
     if (caller.email !== invitation.email) {
       fail('permission-denied', `招待されたメールアドレス（${invitation.email}）でログインしてください。`)
     }

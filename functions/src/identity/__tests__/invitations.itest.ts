@@ -185,12 +185,10 @@ test('revokeInvitation: owner / admin が pending を取り消せる。取消済
   )
 })
 
-test('acceptInvitation: メールアドレスが未確認のアカウントは受諾できない（URL の転送によるなりすまし対策）', async () => {
+test('acceptInvitation: 作成直後（メールアドレス未確認）のアカウントでもその場で受諾できる', async () => {
   const created = await createInvitationFunc(db, OWNER, { orgId: 'org-a', email: 'new@example.com', role: 'admin', storeIds: [] })
 
-  await assert.rejects(
-    updateInvitationAcceptFunc(db, caller('u-new', 'new@example.com', false), { token: created.token, displayName: '新人' }),
-    { code: 'failed-precondition', message: 'メールアドレスの確認が完了していません。確認メールのリンクを開いてから、もう一度お試しください。' },
-  )
-  assert.equal((await db.doc('organizations/org-a/members/u-new').get()).exists, false)
+  const { orgId } = await updateInvitationAcceptFunc(db, caller('u-new', 'new@example.com'), { token: created.token, displayName: '新人' })
+  assert.equal(orgId, 'org-a')
+  assert.equal((await db.doc('organizations/org-a/members/u-new').get()).get('role'), 'admin')
 })

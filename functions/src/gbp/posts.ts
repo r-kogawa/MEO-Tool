@@ -183,7 +183,7 @@ export async function updateGbpPostsSyncFunc(
   const orgId = requireId(input.orgId, '組織 ID')
   await requireOrg(db, orgId)
   const member = await requireMember(db, orgId, caller.uid)
-  const storeIds = input.storeIds === undefined ? undefined : requireStringArray(input.storeIds, '店舗', 100)
+  const storeIds = input.storeIds == null ? undefined : requireStringArray(input.storeIds, '店舗', 100)
   const stores = await loadGbpStores(db, orgId, member, storeIds)
   const clientOf = createClientPool(db, orgId, deps)
   return runBatch(stores, store => store.id, store => withConnectionErrors(db, orgId, store.connectionId, async () => {

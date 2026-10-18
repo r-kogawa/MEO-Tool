@@ -64,7 +64,12 @@ async function onSubmit(): Promise<void> {
     <UiInputTextField v-model="displayName" label="お名前" autocomplete="name" is-required :maxlength="50" />
     <UiInputTextField v-model="email" label="メールアドレス" type="email" autocomplete="email" is-required />
     <UiInputTextField v-model="password" label="パスワード" type="password" autocomplete="new-password" hint="8 文字以上" is-required />
-    <UiInputCheckboxField v-model="hasAgreed" label="利用規約とプライバシーポリシーに同意する" />
+    <UiInputCheckboxField v-model="hasAgreed" label="利用規約とプライバシーポリシーに同意する">
+      <!-- 入力中の内容を失わないよう別タブで開く -->
+      <template #label>
+        <NuxtLink to="/terms" target="_blank" rel="noopener" class="text-brand-700 underline hover:no-underline">利用規約</NuxtLink>とプライバシーポリシーに同意する
+      </template>
+    </UiInputCheckboxField>
 
     <UiCommonAlert v-if="errorMessage" tone="danger">{{ errorMessage }}</UiCommonAlert>
     <UiCommonButton type="submit" is-block :is-loading="isPending" :is-disabled="!canSubmit">登録する</UiCommonButton>

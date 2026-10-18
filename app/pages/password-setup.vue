@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// パスワード設定リンク（/password-setup?oobCode=...）から開く。外部 API でアカウントを作った人の初回設定に使う
+// パスワード設定リンク（/password-setup?oobCode=...）から開く。外部 API でアカウントを作った人の初回設定と、パスワード再設定に使う
 definePageMeta({ layout: 'auth' })
 useSeoMeta({ title: 'パスワード設定', robots: 'noindex, nofollow' })
 

@@ -69,6 +69,11 @@ test('reviewsSync: 全店舗の口コミを保存する（返信・評価のみ�
   assert.equal(anonymous.reply, null)
 })
 
+test('reviewsSync: storeIds が null（SDK が undefined を null に変換）なら全店舗を同期する', async () => {
+  const result = await sync(OWNER, { orgId: 'org-a', storeIds: null })
+  assert.deepEqual(result, { succeeded: ['st-1', 'st-2'], failed: [] })
+})
+
 test('reviewsSync: staff は担当店舗の口コミだけを同期する', async () => {
   const result = await sync(caller('u-staff'))
   assert.deepEqual(result.succeeded, ['st-1'])

@@ -22,8 +22,8 @@ export async function clearFirestore(): Promise<void> {
   if (!response.ok) throw new Error(`Firestore のクリアに失敗しました: HTTP ${response.status}`)
 }
 
-export function caller(uid: string, email = `${uid}@example.com`, isEmailVerified = true): Caller {
-  return { uid, email, isEmailVerified }
+export function caller(uid: string, email = `${uid}@example.com`): Caller {
+  return { uid, email }
 }
 
 interface SeedMember {

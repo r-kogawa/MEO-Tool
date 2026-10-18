@@ -4,6 +4,7 @@ import { initializeApp, cert, ServiceAccount } from "firebase-admin/app";
 import { callable, publicCallable } from "./shared/callable";
 import { createOrganizationFunc } from "./identity/createOrganization";
 import { createAccountFunc } from "./identity/createAccount";
+import { postPasswordResetMailFunc } from "./identity/passwordReset";
 import { externalApi } from "./shared/externalApi";
 import { appUrl } from "./shared/appUrl";
 import { defineSecret } from "firebase-functions/params";
@@ -61,6 +62,8 @@ export const updateInvitationRevoke = callable(updateInvitationRevokeFunc);
 export const updateMemberRole = callable(updateMemberRoleFunc);
 export const deleteMember = callable(deleteMemberFunc);
 export const updateOrganizationName = callable(updateOrganizationNameFunc);
+// パスワード再設定メール（ログイン不要。管理画面のパスワード設定ページのリンクを SMTP で送る）
+export const postPasswordResetMail = publicCallable((_db, data) => postPasswordResetMailFunc(data));
 // 外部システムからのアカウント作成（Authorization: Bearer <ACCOUNT_API_KEY> の POST）
 export const createAccount = externalApi(defineSecret("ACCOUNT_API_KEY"), (db, data) => createAccountFunc(db, data));
 

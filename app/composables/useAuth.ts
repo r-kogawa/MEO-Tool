@@ -1,8 +1,6 @@
-import { FirebaseError } from 'firebase/app'
 import {
   confirmPasswordReset,
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -131,15 +129,9 @@ export function useAuth() {
     await createFirebaseUser(input)
   }
 
+  /** 再設定メール（パスワード設定ページのリンク）を送る。登録有無が分からないよう、存在しないメールでも成功扱い（Functions 側） */
   async function requestPasswordReset(email: string): Promise<void> {
-    try {
-      await sendPasswordResetEmail($auth, email.trim())
-    }
-    catch (error) {
-      // 登録有無が分からないよう、存在しないメールでも成功扱いにする
-      if (error instanceof FirebaseError && error.code === 'auth/user-not-found') return
-      throw toAuthError(error)
-    }
+    await callFunction<object, void>($functions, 'postPasswordResetMail', { email: email.trim() })
   }
 
   /** パスワード設定リンクの oobCode を確かめ、対象のメールアドレスを返す */

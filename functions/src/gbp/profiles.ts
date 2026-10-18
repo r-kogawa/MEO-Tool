@@ -24,7 +24,7 @@ async function saveProfile(db: Firestore, orgId: string, storeId: string, locati
 }
 
 function readStoreIds(value: unknown): string[] | undefined {
-  return value === undefined ? undefined : requireStringArray(value, '店舗', 100)
+  return value == null ? undefined : requireStringArray(value, '店舗', 100)
 }
 
 export async function updateGbpProfilesSyncFunc(
