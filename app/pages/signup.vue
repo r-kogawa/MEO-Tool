@@ -67,7 +67,7 @@ async function onSubmit(): Promise<void> {
     <UiInputCheckboxField v-model="hasAgreed" label="利用規約とプライバシーポリシーに同意する">
       <!-- 入力中の内容を失わないよう別タブで開く -->
       <template #label>
-        <NuxtLink to="/terms" target="_blank" rel="noopener" class="text-brand-700 underline hover:no-underline">利用規約</NuxtLink>とプライバシーポリシーに同意する
+        <NuxtLink to="/terms" target="_blank" rel="noopener" class="text-brand-700 underline hover:no-underline">利用規約</NuxtLink>と<NuxtLink to="/privacy" target="_blank" rel="noopener" class="text-brand-700 underline hover:no-underline">プライバシーポリシー</NuxtLink>に同意する
       </template>
     </UiInputCheckboxField>
 

@@ -5,6 +5,9 @@
       <slot />
     </div>
     <!-- 新規登録・招待の入力途中でも内容を失わないよう別タブで開く -->
-    <NuxtLink to="/terms" target="_blank" rel="noopener" class="mt-6 text-xs text-slate-500 hover:text-brand-600">利用規約</NuxtLink>
+    <!-- <div class="mt-6 flex gap-4 text-xs text-slate-500">
+      <NuxtLink to="/terms" target="_blank" rel="noopener" class="hover:text-brand-600">利用規約</NuxtLink>
+      <NuxtLink to="/privacy" target="_blank" rel="noopener" class="hover:text-brand-600">プライバシーポリシー</NuxtLink>
+    </div> -->
   </div>
 </template>

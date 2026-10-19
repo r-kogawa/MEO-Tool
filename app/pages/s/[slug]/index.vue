@@ -89,8 +89,10 @@ watch(answers, (value) => {
     <UiCommonAlert v-if="errorMessage" tone="danger">{{ errorMessage }}</UiCommonAlert>
 
     <UiCommonButton type="submit" is-block :is-loading="isPending">回答を送信する</UiCommonButton>
-    <p class="text-center text-xs text-slate-400">
-      ご回答の内容は店舗のサービス向上のために利用します。
+    <!-- 回答の途中で開いても入力内容を失わないよう別タブで開く -->
+    <p class="text-center text-xs leading-relaxed text-slate-400">
+      ご回答の内容は店舗のサービス向上のために利用します。<br>
+      取扱いについては<NuxtLink to="/privacy" target="_blank" rel="noopener" class="underline hover:no-underline">プライバシーポリシー</NuxtLink>をご覧ください。
     </p>
   </form>
 </template>

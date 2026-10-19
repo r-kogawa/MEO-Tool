@@ -14,6 +14,7 @@ const navItems = useLandingNav()
         <NuxtLink to="/login" class="hover:text-brand-600">ログイン</NuxtLink>
         <NuxtLink to="/signup" class="hover:text-brand-600">アカウント登録</NuxtLink>
         <NuxtLink to="/terms" class="hover:text-brand-600">利用規約</NuxtLink>
+        <NuxtLink to="/privacy" class="hover:text-brand-600">プライバシーポリシー</NuxtLink>
       </nav>
     </div>
     <p class="border-t border-slate-200 py-4 text-center text-xs text-slate-400">&copy; MFF MEOツール</p>
