@@ -22,6 +22,7 @@ export async function updateMemberRoleFunc(db: Firestore, caller: Caller, data: 
   if (role === 'staff' && storeIds.length === 0) fail('invalid-argument', 'スタッフには担当店舗を 1 つ以上選んでください。')
 
   await db.runTransaction(async (tx) => {
+    await requireOrg(db, orgId, tx)
     await requireMember(db, orgId, caller.uid, ['owner', 'admin'], tx)
     const target = await requireTarget(db, orgId, targetUid, tx)
     if (target.role === 'owner') fail('failed-precondition', 'オーナーの権限は変更できません。')
@@ -36,6 +37,7 @@ export async function deleteMemberFunc(db: Firestore, caller: Caller, data: unkn
   const targetUid = requireId(input.targetUid, 'メンバー')
 
   await db.runTransaction(async (tx) => {
+    await requireOrg(db, orgId, tx)
     await requireMember(db, orgId, caller.uid, ['owner', 'admin'], tx)
     const target = await requireTarget(db, orgId, targetUid, tx)
     if (target.role === 'owner') fail('failed-precondition', 'オーナーは削除できません。')

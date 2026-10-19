@@ -170,3 +170,10 @@ test('updateStoreArchive: 店舗の公開中・停止中のアンケートを終
   const audit = (await db.collection('organizations/org-a/auditLogs').where('action', '==', 'store.archive').get()).docs[0]!
   assert.deepEqual([...audit.get('payload.closedSurveyIds')].sort(), ['sv-paused', 'sv-published'])
 })
+
+test('updateStoreArchive: 停止中の組織では拒否する', async () => {
+  await db.doc('organizations/org-a/stores/st-111').set({ orgId: 'org-a', name: '渋谷店', status: 'active' })
+  await db.doc('organizations/org-a').update({ status: 'suspended' })
+  await assert.rejects(updateStoreArchiveFunc(db, OWNER, { orgId: 'org-a', storeId: 'st-111' }), { code: 'failed-precondition', message: 'この組織は利用停止中です。' })
+  assert.equal((await db.doc('organizations/org-a/stores/st-111').get()).get('status'), 'active')
+})

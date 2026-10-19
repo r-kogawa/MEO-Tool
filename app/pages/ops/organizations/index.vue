@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import type { OrgStatus, OrgType } from '~/types/domain'
+import type { OpsOrganizationSummary } from '~/composables/useOps'
 
 definePageMeta({ layout: 'ops' })
 useSeoMeta({ title: '組織一覧（運営）', robots: 'noindex, nofollow' })
 
-const { organizations } = useOps()
+const { fetchOrganizations } = useOps()
+const organizations = ref<OpsOrganizationSummary[]>([])
+const loadState = useActionState()
+// 一覧は開いたときに 1 回だけ読む（購読しない）
+onMounted(async () => {
+  organizations.value = (await loadState.run(fetchOrganizations)) ?? []
+})
 
 const keyword = ref('')
 const typeFilter = ref<OrgType | null>(null)
@@ -33,6 +40,7 @@ const STATUS_OPTIONS = [
 <template>
   <div>
     <UiCommonPageHeader title="組織一覧" :description="`全 ${organizations.length} 組織`" />
+    <UiCommonAlert v-if="loadState.errorMessage.value" tone="danger" class="mb-4">{{ loadState.errorMessage.value }}</UiCommonAlert>
 
     <div class="mb-4 grid gap-3 sm:grid-cols-[1fr_12rem_12rem]">
       <UiInputTextField v-model="keyword" label="組織名・オーナーのメールで検索" placeholder="例: ハナミ" />
@@ -78,7 +86,7 @@ const STATUS_OPTIONS = [
               </td>
             </tr>
             <tr v-if="filtered.length === 0">
-              <td colspan="7" class="px-4 py-10 text-center text-slate-500">条件に合う組織がありません。</td>
+              <td colspan="7" class="px-4 py-10 text-center text-slate-500">{{ loadState.isPending.value ? '読み込み中…' : '条件に合う組織がありません。' }}</td>
             </tr>
           </tbody>
         </table>

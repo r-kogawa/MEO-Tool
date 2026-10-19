@@ -59,7 +59,9 @@ function chunk<T>(items: T[], size: number): T[][] {
 export function refreshAuthUser(): void {
   const { $auth } = useNuxtApp()
   const db = useFirestoreDb()
-  if ($auth.currentUser) db.value.users = [toUser($auth.currentUser)]
+  if (!$auth.currentUser) return
+  // claims は変わらないので、運営フラグは今の値を引き継ぐ
+  db.value.users = [{ ...toUser($auth.currentUser), isOperator: db.value.users[0]?.isOperator ?? false }]
 }
 
 export function startFirestoreSync(): void {
@@ -227,7 +229,7 @@ export function startFirestoreSync(): void {
     }))
   }
 
-  onAuthStateChanged($auth, (authUser) => {
+  onAuthStateChanged($auth, async (authUser) => {
     resetAll()
     state.value.isOrgsReady = false
     if (!authUser) {
@@ -235,7 +237,12 @@ export function startFirestoreSync(): void {
       state.value.isOrgsReady = true
       return
     }
-    db.value.users = [toUser(authUser)]
+    // claims（運営フラグ）を読むまで認証済みにしない。ops.global.ts が isOperator を見るため
+    state.value.isAuthReady = false
+    const claims = await authUser.getIdTokenResult().then(result => result.claims, () => ({}))
+    // 待つ間に別のユーザーへ切り替わっていたら、新しい方の通知に任せる
+    if ($auth.currentUser?.uid !== authUser.uid) return
+    db.value.users = [toUser(authUser, claims)]
     state.value.isAuthReady = true
     watchMemberships(authUser.uid)
   })

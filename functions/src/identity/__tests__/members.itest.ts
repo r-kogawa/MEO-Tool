@@ -70,3 +70,10 @@ test('updateOrganizationName: owner のみ変更でき、空は拒否', async ()
     { code: 'invalid-argument', message: '組織名を入力してください。' },
   )
 })
+
+test('停止中の組織では updateMemberRole / deleteMember を拒否する', async () => {
+  await db.doc('organizations/org-a').update({ status: 'suspended' })
+  const SUSPENDED = { code: 'failed-precondition', message: 'この組織は利用停止中です。' }
+  await assert.rejects(updateMemberRoleFunc(db, caller('u-owner'), { orgId: 'org-a', targetUid: 'u-admin', role: 'admin', storeIds: [] }), SUSPENDED)
+  await assert.rejects(deleteMemberFunc(db, caller('u-owner'), { orgId: 'org-a', targetUid: 'u-staff' }), SUSPENDED)
+})

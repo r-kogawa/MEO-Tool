@@ -419,6 +419,6 @@ OAuth の CSRF 対策。`orgId` / `uid` / `expiresAt`（10 分）。Firestore �
 | `rankRuns`（トップレベル） | 全拒否 | Functions のみ |
 | `usageMonthly` | メンバー | Functions のみ |
 | `auditLogs` | owner / admin | Functions のみ |
-| すべて | 運営（`request.auth.token.operator == true`）は読取可 | — |
+| すべて | 運営は Firestore を直接読まない。運営専用の callable（`getOpsOrganizations` / `getOpsOrganization`）を使う（`docs/superpowers/specs/2026-10-18-ops-console-design.md`） | — |
 
 > ルールの `get()` 呼び出し回数を抑えるため、メンバー判定は `members/{request.auth.uid}` の 1 回の `get()` にまとめる。

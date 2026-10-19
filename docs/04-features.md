@@ -376,4 +376,6 @@ stateDiagram-v2
 | 概要 | 自社の運営担当が全組織を横断して確認・操作する（前提 P-8） |
 | 機能 | 組織検索、プラン・上限の変更、利用停止 / 再開、Google 連携エラー・利用量の確認 |
 | 権限 | Custom Claims `operator: true`。付与は CLI / スクリプトのみ |
+| データ取得 | 運営専用の callable（`functions/src/ops/organizations.ts`）。Firestore ルールは運営者に広げない |
+| 利用停止の効果 | 書き込み系の callable・公開アンケートの受付・自動同期 / 自動計測を止める。閲覧・CSV・Google 連携の解除は可 |
 | 監査 | すべての操作を `auditLogs` に記録 |

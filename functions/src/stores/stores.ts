@@ -150,6 +150,7 @@ export async function updateStoreArchiveFunc(db: Firestore, caller: Caller, data
   const orgId = requireId(input.orgId, '組織 ID')
   const storeId = requireId(input.storeId, '店舗 ID')
   await db.runTransaction(async (tx) => {
+    await requireOrg(db, orgId, tx)
     await requireMember(db, orgId, caller.uid, ['owner', 'admin'], tx)
     const ref = db.doc(`organizations/${orgId}/stores/${storeId}`)
     if (!(await tx.get(ref)).exists) fail('not-found', '店舗が見つかりません。')

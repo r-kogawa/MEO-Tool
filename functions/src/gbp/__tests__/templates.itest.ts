@@ -74,3 +74,12 @@ test('runScheduledReviewsSync: 同期が古い組織から処理し、maxOrgs �
   assert.ok(syncedB > new Date('2026-10-02T00:00:00Z'))
   assert.equal((await db.doc('organizations/org-a').get()).get('reviewsSyncedAt').toDate().toISOString(), '2026-10-06T00:00:00.000Z')
 })
+
+test('replyTemplate: 停止中の組織では作成・更新・削除を拒否する', async () => {
+  const { id } = await createReplyTemplateFunc(db, OWNER, { orgId: 'org-a', name: 'お礼', body: '本文' })
+  await db.doc('organizations/org-a').update({ status: 'suspended' })
+  const SUSPENDED = { code: 'failed-precondition', message: 'この組織は利用停止中です。' }
+  await assert.rejects(createReplyTemplateFunc(db, OWNER, { orgId: 'org-a', name: 'x', body: 'y' }), SUSPENDED)
+  await assert.rejects(updateReplyTemplateFunc(db, OWNER, { orgId: 'org-a', templateId: id, name: 'x', body: 'y' }), SUSPENDED)
+  await assert.rejects(deleteReplyTemplateFunc(db, OWNER, { orgId: 'org-a', templateId: id }), SUSPENDED)
+})

@@ -14,12 +14,13 @@ export function toIso(value: unknown): string {
   return new Date().toISOString()
 }
 
-export function toUser(authUser: AuthUser): User {
+export function toUser(authUser: AuthUser, claims: Record<string, unknown> = {}): User {
   return {
     uid: authUser.uid,
     email: (authUser.email ?? '').toLowerCase(),
     displayName: authUser.displayName ?? authUser.email ?? '',
-    isOperator: false,
+    // 運営フラグは Custom Claims（functions の npm run ops:grant で付与）
+    isOperator: claims.operator === true,
   }
 }
 

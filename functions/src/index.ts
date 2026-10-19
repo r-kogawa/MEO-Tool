@@ -42,6 +42,7 @@ import {
 } from "./surveys/surveys";
 import { getResponsesCsvFunc } from "./surveys/responsesCsv";
 import { postReviewRedirectFunc, postSurveyResponseFunc } from "./responses/responses";
+import { getOpsOrganizationFunc, getOpsOrganizationsFunc, updateOrganizationPlanFunc, updateOrganizationStatusFunc } from "./ops/organizations";
 
 const env = process.env;
 const serviceAccount = require("../serviceAccount.json");
@@ -158,3 +159,9 @@ export const getResponsesCsv = callable(getResponsesCsvFunc);
 // responses/ … 回答の受付（2.2・2.3。ログイン不要）。deps は既定値を使うため、引数を明示して渡す
 export const postSurveyResponse = publicCallable((db, data, context) => postSurveyResponseFunc(db, data, context));
 export const postReviewRedirect = publicCallable((db, data) => postReviewRedirectFunc(db, data));
+
+// ops/ … 運営画面（F-20。Custom Claims の operator だけ。docs/superpowers/specs/2026-10-18-ops-console-design.md）
+export const getOpsOrganizations = callable((db, caller, data) => getOpsOrganizationsFunc(db, caller, data));
+export const getOpsOrganization = callable((db, caller, data) => getOpsOrganizationFunc(db, caller, data));
+export const updateOrganizationStatus = callable((db, caller, data) => updateOrganizationStatusFunc(db, caller, data));
+export const updateOrganizationPlan = callable((db, caller, data) => updateOrganizationPlanFunc(db, caller, data));

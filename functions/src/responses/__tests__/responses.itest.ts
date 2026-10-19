@@ -146,3 +146,11 @@ test('postReviewRedirect: 条件を満たした回答だけ遷移日時を記録
   assert.equal(await redirectedAt('sub-ng'), null)
   await assert.rejects(postReviewRedirectFunc(db, { slug, submissionId: '../x' }, deps()), { code: 'invalid-argument' })
 })
+
+test('postSurveyResponse: 組織が停止中なら受け付けない。保存済みの再送は結果を返す', async () => {
+  const first = await post('sub-1', { 'q-overall': 5 })
+  await db.doc(`organizations/${ORG}`).update({ status: 'suspended' })
+  await assert.rejects(post('sub-2', { 'q-overall': 5 }), CLOSED)
+  assert.deepEqual(await post('sub-1', { 'q-overall': 5 }), first)
+  assert.equal(await responseCount(), 1)
+})

@@ -10,6 +10,7 @@
     "logs": "firebase functions:log",
     "test": "tsc -p tsconfig.test.json && node --test \"lib-test/**/__tests__/*.test.js\"",
     "rank:probe": "tsc -p tsconfig.test.json && node lib-test/rankings/__tests__/probe.js",
+    "ops:grant": "tsc -p tsconfig.test.json && node lib-test/ops/__tests__/grantOperator.js",
     "test:emulator": "tsc -p tsconfig.test.json && node --test --test-concurrency=1 \"lib-test/**/__tests__/*.itest.js\""
   },
   "engines": {

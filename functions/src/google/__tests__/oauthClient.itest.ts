@@ -77,3 +77,10 @@ test('updateGoogleOAuthClient: 連携が残っている間はクライアント 
   await updateGoogleOAuthClientFunc(db, caller('u-owner'), { orgId: 'org-a', clientId: CLIENT_ID, clientSecret: 'new' })
   assert.equal((await loadOAuthClient(db, 'org-a')).clientSecret, 'new')
 })
+
+test('deleteGoogleOAuthClient: 停止中の組織でも削除できる', async () => {
+  await updateGoogleOAuthClientFunc(db, caller('u-owner'), { orgId: 'org-a', clientId: CLIENT_ID, clientSecret: 's' })
+  await db.doc('organizations/org-a').update({ status: 'suspended' })
+  await deleteGoogleOAuthClientFunc(db, caller('u-owner'), { orgId: 'org-a' })
+  assert.equal((await db.doc('oauthClientSecrets/org-a').get()).exists, false)
+})

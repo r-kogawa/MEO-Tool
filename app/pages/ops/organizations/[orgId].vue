@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import type { OrgLimits } from '~/types/domain'
+import type { OpsOrganizationDetail } from '~/composables/useOps'
 
 definePageMeta({ layout: 'ops' })
 useSeoMeta({ title: '組織詳細（運営）', robots: 'noindex, nofollow' })
 
 const route = useRoute()
 const orgId = String(route.params.orgId)
-const { organizationDetail, updateStatus, updatePlan } = useOps()
-const detail = organizationDetail(orgId)
+const { fetchOrganization, updateStatus, updatePlan } = useOps()
+const detail = ref<OpsOrganizationDetail | null>(null)
 const { show } = useToast()
+const loadState = useActionState()
 const statusAction = useActionState()
 const planAction = useActionState()
 
@@ -32,7 +34,12 @@ function resetForm(): void {
   plan.value = detail.value.org.plan
   for (const field of LIMIT_FIELDS) limitInputs.value[field.key] = String(detail.value.org.limits[field.key])
 }
-resetForm()
+
+async function load(): Promise<void> {
+  detail.value = (await loadState.run(() => fetchOrganization(orgId))) ?? null
+  resetForm()
+}
+onMounted(load)
 
 const isSuspended = computed(() => detail.value?.org.status === 'suspended')
 
@@ -42,22 +49,37 @@ async function onToggleStatus(): Promise<void> {
     await updateStatus(orgId, next)
     return true
   })
-  if (isDone) show(next === 'active' ? '利用を再開しました' : '利用を停止しました')
+  if (!isDone) return
+  show(next === 'active' ? '利用を再開しました' : '利用を停止しました')
+  await load()
+}
+
+/**
+ * 空欄・数値でない入力は 0 にせず null として送り、サーバーに拒否させる。
+ * NaN は callable の SDK が送信前に例外にする（汎用エラーになる）ため使わない
+ */
+function toLimitValue(input: string): number | null {
+  const value = input.trim() === '' ? Number.NaN : Number(input)
+  return Number.isFinite(value) ? value : null
 }
 
 async function onSavePlan(): Promise<void> {
-  const limits = Object.fromEntries(LIMIT_FIELDS.map(field => [field.key, Number(limitInputs.value[field.key])])) as unknown as OrgLimits
+  const limits = Object.fromEntries(LIMIT_FIELDS.map(field => [field.key, toLimitValue(limitInputs.value[field.key])])) as unknown as OrgLimits
   const isDone = await planAction.run(async () => {
     await updatePlan(orgId, plan.value.trim(), limits)
     return true
   })
-  if (isDone) show('プランと上限を更新しました')
+  if (!isDone) return
+  show('プランと上限を更新しました')
+  await load()
 }
 </script>
 
 <template>
-  <div v-if="!detail" class="space-y-4">
-    <UiCommonAlert tone="danger">組織が見つかりません。</UiCommonAlert>
+  <p v-if="loadState.isPending.value && !detail" class="text-sm text-slate-500">読み込み中…</p>
+
+  <div v-else-if="!detail" class="space-y-4">
+    <UiCommonAlert tone="danger">{{ loadState.errorMessage.value ?? '組織が見つかりません。' }}</UiCommonAlert>
     <UiCommonButton to="/ops/organizations" variant="secondary">組織一覧へ</UiCommonButton>
   </div>
 

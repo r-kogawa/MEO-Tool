@@ -53,6 +53,7 @@ export async function postSurveyResponseFunc(
     const responseRef = db.doc(`organizations/${survey.orgId}/responses/${submissionId}`)
     const existing = await tx.get(responseRef)
     const store = await tx.get(db.doc(`organizations/${survey.orgId}/stores/${survey.storeId}`))
+    const org = await tx.get(db.doc(`organizations/${survey.orgId}`))
     // reviewUrl は回答に保存しない。条件を満たしたときだけ店舗から読んで返す
     const resultOf = (isEligible: boolean): PostSurveyResponseResult => ({
       responseId: submissionId,
@@ -65,6 +66,8 @@ export async function postSurveyResponseFunc(
       if (existing.get('surveyId') !== survey.surveyId) fail('already-exists', 'この回答はすでに送信されています。')
       return resultOf(existing.get('isEligible') === true)
     }
+    // 運営による利用停止。publicSurveys の停止が間に合わなかった回答もここで止める
+    if (org.get('status') !== 'active') fail('failed-precondition', CLOSED_MESSAGE)
     if (survey.status !== 'published') fail('failed-precondition', CLOSED_MESSAGE)
     if (!isWithinPeriod(toPeriod(survey.publishPeriod), now)) fail('failed-precondition', '回答の受付期間外です。')
 

@@ -23,7 +23,11 @@ export async function clearFirestore(): Promise<void> {
 }
 
 export function caller(uid: string, email = `${uid}@example.com`): Caller {
-  return { uid, email }
+  return { uid, email, isOperator: false }
+}
+
+export function operatorCaller(uid = 'u-ops'): Caller {
+  return { uid, email: `${uid}@example.com`, isOperator: true }
 }
 
 interface SeedMember {
