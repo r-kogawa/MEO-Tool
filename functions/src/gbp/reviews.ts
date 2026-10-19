@@ -33,15 +33,23 @@ function toTimestamp(iso: string | undefined): Timestamp | null {
   return iso ? Timestamp.fromDate(new Date(iso)) : null
 }
 
-const TRANSLATED_PREFIX = '(Translated by Google)'
-const ORIGINAL_MARKER = '\n\n(Original)\n'
+const TRANSLATED_MARKER = '(Translated by Google)'
+const ORIGINAL_MARKER = '(Original)'
 
-/** GBP は外国語の口コミを「(Translated by Google) 訳文 (Original) 原文」で返すため、原文だけを残す */
+/**
+ * GBP は口コミに Google 翻訳（英語）の訳文を付けて返すため、原文だけを残す。並びは
+ * 「(Translated by Google) 訳文 (Original) 原文」と「原文 (Translated by Google) 訳文」の両方がある
+ */
 export function toOriginalComment(comment: string | undefined): string | null {
   if (comment === undefined) return null
-  const markerAt = comment.indexOf(ORIGINAL_MARKER)
-  if (!comment.startsWith(TRANSLATED_PREFIX) || markerAt === -1) return comment
-  return comment.slice(markerAt + ORIGINAL_MARKER.length)
+  const translatedAt = comment.indexOf(TRANSLATED_MARKER)
+  if (translatedAt === -1) return comment
+  if (translatedAt === 0) {
+    const originalAt = comment.indexOf(ORIGINAL_MARKER)
+    return originalAt === -1 ? comment : comment.slice(originalAt + ORIGINAL_MARKER.length).trim()
+  }
+  const original = comment.slice(0, translatedAt).trim()
+  return original.startsWith(ORIGINAL_MARKER) ? original.slice(ORIGINAL_MARKER.length).trim() : original
 }
 
 export function toReviewDoc(orgId: string, storeId: string, review: GbpReview): Record<string, unknown> {
