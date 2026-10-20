@@ -6,7 +6,7 @@ import {
   updateProfile,
   verifyPasswordResetCode,
 } from 'firebase/auth'
-import type { OrgType, User } from '~/types/domain'
+import type { Industry, OrgType, StoreCount, User } from '~/types/domain'
 import { toAuthError } from '~/utils/firebase/authErrors'
 import { callFunction } from '~/utils/firebase/callFunction'
 import { isDemoUid } from '~/utils/mock/demo'
@@ -22,6 +22,9 @@ interface SignupInput {
   displayName: string
   email: string
   password: string
+  phone: string
+  industry: Industry
+  storeCount: StoreCount
 }
 
 export function useAuth() {
@@ -30,6 +33,7 @@ export function useAuth() {
   const firestoreDb = useFirestoreDb()
   const { $auth, $functions } = useNuxtApp()
   const { waitForOrg } = useBackendReady()
+  const { load: loadSignupSource, clear: clearSignupSource } = useSignupSource()
   // 組織作成の再送用。成功するまで同じ ID を使い、Functions 側の重複防止を効かせる
   const signupRequestId = useState('signup-request-id', () => crypto.randomUUID())
 
@@ -103,6 +107,8 @@ export function useAuth() {
   /** アカウントと組織をまとめて作成し、作成した組織 ID を返す */
   async function signup(input: SignupInput): Promise<string> {
     leaveDemo()
+    // サーバーだけで弾くと Auth ユーザーだけが作られてしまうため、作成前に検証する
+    if (!isValidPhone(input.phone)) throw new MockFunctionsError('invalid-argument', '電話番号の形式が正しくありません。')
     // 前回の登録が組織作成の途中で失敗していたら、アカウント作成は飛ばして組織作成だけをやり直す
     const currentUser = $auth.currentUser
     if (currentUser?.email?.toLowerCase() === input.email.trim().toLowerCase()) {
@@ -117,7 +123,13 @@ export function useAuth() {
       type: input.type,
       orgName: input.orgName.trim(),
       displayName: input.displayName.trim(),
+      phone: normalizePhone(input.phone),
+      industry: input.industry,
+      storeCount: input.storeCount,
+      source: loadSignupSource(),
     })
+    // 組織ができた時点で消す（waitForOrg が失敗しても経路を端末に残さない）
+    clearSignupSource()
     await waitForOrg(orgId)
     signupRequestId.value = crypto.randomUUID()
     return orgId

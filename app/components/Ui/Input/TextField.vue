@@ -1,7 +1,7 @@
 <script setup lang="ts">
 interface Props {
   label: string
-  type?: 'text' | 'email' | 'password' | 'url' | 'number' | 'datetime-local'
+  type?: 'text' | 'email' | 'tel' | 'password' | 'url' | 'number' | 'datetime-local'
   placeholder?: string
   hint?: string
   error?: string | null

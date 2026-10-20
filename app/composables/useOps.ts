@@ -1,4 +1,4 @@
-import type { GoogleConnection, Member, OrgLimits, OrgStatus, Organization, Store, UsageMonthly } from '~/types/domain'
+import type { GoogleConnection, Member, OrgLimits, OrgStatus, Organization, SignupProfile, Store, UsageMonthly } from '~/types/domain'
 import { callFunction } from '~/utils/firebase/callFunction'
 import { toMonthKey } from '~/utils/format'
 import { updateOrganizationPlanFunc, updateOrganizationStatusFunc } from '~/utils/mock/functions/ops'
@@ -21,6 +21,7 @@ export interface OpsOrganizationSummary {
   stores: number
   members: number
   hasConnectionError: boolean
+  signup: SignupProfile | null
 }
 
 export interface OpsOrganizationDetail extends OpsOrganizationSummary {
@@ -45,6 +46,7 @@ export function useOps() {
       stores: db.value.stores.filter(item => item.orgId === org.id && item.status === 'active').length,
       members: db.value.members.filter(item => item.orgId === org.id).length,
       hasConnectionError: db.value.googleConnections.some(item => item.orgId === org.id && item.status === 'error'),
+      signup: null,
     }
   }
 

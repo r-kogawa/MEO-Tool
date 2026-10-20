@@ -310,6 +310,21 @@ OAuth の CSRF 対策。`orgId` / `uid` / `expiresAt`（10 分）。Firestore �
 
 `{ hits: Timestamp[], expireAt: Timestamp }`。`expireAt` は最後の受付から 1 日後で、Firestore の TTL で消す。直近 10 分の受付時刻。同じ接続元から同じアンケートへは 10 分で 5 件まで。ルールに記載せず全員拒否（Functions のみ）。
 
+### 3.12b `signupProfiles/{orgId}`（トップレベル・ルールで全拒否）
+
+新規登録時の電話番号・業種・運営店舗数・登録経路。組織のメンバー全員が `organizations/{orgId}` を読めるため、電話番号や広告の経路をお客様側のスタッフに見せないよう別コレクションに置く。運営画面の callable（Admin SDK）だけが読む。`createOrganization` の同じトランザクションで作り、再送では上書きしない。
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| orgId | string | ○ | |
+| ownerUid | string | ○ | 登録したユーザー |
+| phone | string | ○ | 数字だけ |
+| industry | `'salon' \| 'bodywork' \| 'beauty' \| 'unmanned' \| 'other'` | ○ | |
+| storeCount | `'1' \| '2' \| '3-5' \| '6+'` | ○ | |
+| via | `'signup' \| 'externalApi'` | ○ | 登録方法。画面の新規登録か、外部 API（`createAccount`）か |
+| source | map \| null | ○ | `{ utmSource, utmMedium, utmCampaign, ref, landingPath, capturedAt }`（各 string \| null）。経路なしは `null` |
+| createdAt | Timestamp | ○ | |
+
 ### 3.13 `organizations/{orgId}/rankKeywords/{keywordId}`
 
 | フィールド | 型 | 必須 | 説明 |
@@ -412,6 +427,7 @@ OAuth の CSRF 対策。`orgId` / `uid` / `expiresAt`（10 分）。Firestore �
 | `surveyVersions` | メンバー（staff は担当店舗のみ） | Functions のみ |
 | `publicSurveys` | 誰でも slug を指定して 1 件読める（`get` のみ。`list` は不可。中身は公開用の情報だけ） | Functions のみ |
 | `rateLimits` | 全拒否 | Functions のみ |
+| `signupProfiles` | 全拒否（運営画面の callable だけが Admin SDK で読む） | Functions のみ |
 | `responses` | メンバー（staff は担当店舗のみ） | Functions のみ |
 | `rankKeywords` | メンバー（staff は担当店舗のみ） | Functions のみ（登録・停止・削除は owner / admin が callable 経由） |
 | `rankSnapshots` `rankResults` | 同上 | Functions のみ |

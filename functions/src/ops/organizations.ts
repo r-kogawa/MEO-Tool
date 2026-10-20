@@ -3,6 +3,7 @@ import type { DocumentSnapshot, Firestore, Timestamp } from 'firebase-admin/fire
 import { toJstMonthKey } from '../rankings/validation'
 import { writeAuditLog } from '../shared/audit'
 import { requireOperator, type Caller } from '../shared/auth'
+import { signupProfileRef, type Industry, type SignupSource, type SignupVia, type StoreCount } from '../identity/signupProfile'
 import { fail } from '../shared/errors'
 import { orgRef, type MemberRole, type OrgDoc, type OrgLimits } from '../shared/members'
 import { asObject, requireId, requireOneOf, requireString } from '../shared/validation'
@@ -22,6 +23,14 @@ export interface OpsOrganization {
   createdAt: string
 }
 
+export interface OpsSignupProfile {
+  phone: string
+  industry: Industry
+  storeCount: StoreCount
+  via: SignupVia
+  source: SignupSource | null
+}
+
 export interface OpsOrganizationSummary {
   org: OpsOrganization
   ownerName: string
@@ -29,6 +38,8 @@ export interface OpsOrganizationSummary {
   stores: number
   members: number
   hasConnectionError: boolean
+  /** 登録時の入力。プロフィールの無い既存組織は null */
+  signup: OpsSignupProfile | null
 }
 
 export interface OpsOrganizationDetail extends OpsOrganizationSummary {
@@ -83,11 +94,12 @@ function toOpsOrganization(snapshot: DocumentSnapshot): OpsOrganization {
 async function summarize(db: Firestore, snapshot: DocumentSnapshot): Promise<OpsOrganizationSummary> {
   const org = toOpsOrganization(snapshot)
   const base = orgRef(db, org.id)
-  const [owner, stores, members, errors] = await Promise.all([
+  const [owner, stores, members, errors, signup] = await Promise.all([
     base.collection('members').doc(org.ownerUid).get(),
     base.collection('stores').where('status', '==', 'active').count().get(),
     base.collection('members').count().get(),
     base.collection('googleConnections').where('status', '==', 'error').limit(1).get(),
+    signupProfileRef(db, org.id).get(),
   ])
   return {
     org,
@@ -96,6 +108,9 @@ async function summarize(db: Firestore, snapshot: DocumentSnapshot): Promise<Ops
     stores: stores.data().count,
     members: members.data().count,
     hasConnectionError: !errors.empty,
+    signup: signup.exists
+      ? { phone: signup.get('phone'), industry: signup.get('industry'), storeCount: signup.get('storeCount'), via: signup.get('via'), source: signup.get('source') ?? null }
+      : null,
   }
 }
 

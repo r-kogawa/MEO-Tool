@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OrgType } from '~/types/domain'
+import type { Industry, OrgType, StoreCount } from '~/types/domain'
 
 definePageMeta({ layout: 'auth' })
 useSeoMeta({ title: '新規登録', robots: 'noindex, nofollow' })
@@ -12,6 +12,9 @@ const orgName = ref('')
 const displayName = ref('')
 const email = ref('')
 const password = ref('')
+const phone = ref('')
+const storeCount = ref<StoreCount | null>(null)
+const industry = ref<Industry | null>(null)
 const hasAgreed = ref(false)
 
 const ORG_TYPE_CHOICES = [
@@ -19,16 +22,28 @@ const ORG_TYPE_CHOICES = [
   { value: 'corporate', label: '法人', description: '複数店舗・複数担当者向け。メンバー招待と権限管理ができます。' },
 ] as const
 
+const industryOptions: { value: Industry | null; label: string; isDisabled?: boolean }[] = [
+  { value: null, label: '選択してください', isDisabled: true },
+  ...INDUSTRY_OPTIONS,
+]
+
 const canSubmit = computed(() =>
-  hasAgreed.value && orgName.value.trim() !== '' && displayName.value.trim() !== '' && email.value.trim() !== '' && password.value !== '')
+  hasAgreed.value && orgName.value.trim() !== '' && displayName.value.trim() !== '' && email.value.trim() !== '' && password.value !== ''
+    && phone.value.trim() !== '' && storeCount.value !== null && industry.value !== null)
 
 async function onSubmit(): Promise<void> {
+  const selectedStoreCount = storeCount.value
+  const selectedIndustry = industry.value
+  if (selectedStoreCount === null || selectedIndustry === null) return
   const orgId = await run(() => signup({
     type: orgType.value,
     orgName: orgName.value,
     displayName: displayName.value,
     email: email.value,
     password: password.value,
+    phone: phone.value,
+    industry: selectedIndustry,
+    storeCount: selectedStoreCount,
   }))
   if (orgId) await navigateTo(`/admin/${orgId}`)
 }
@@ -64,6 +79,36 @@ async function onSubmit(): Promise<void> {
     <UiInputTextField v-model="displayName" label="お名前" autocomplete="name" is-required :maxlength="50" />
     <UiInputTextField v-model="email" label="メールアドレス" type="email" autocomplete="email" is-required />
     <UiInputTextField v-model="password" label="パスワード" type="password" autocomplete="new-password" hint="8 文字以上" is-required />
+    <UiInputTextField
+      v-model="phone"
+      label="電話番号"
+      type="tel"
+      autocomplete="tel"
+      is-required
+      :maxlength="20"
+      placeholder="例: 090-1234-5678"
+    />
+
+    <fieldset class="space-y-2">
+      <legend class="mb-2 text-sm font-medium text-slate-700">
+        運営店舗数
+        <span class="ml-1 text-xs text-rose-600">必須</span>
+      </legend>
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <label
+          v-for="choice in STORE_COUNT_OPTIONS"
+          :key="choice.value"
+          class="cursor-pointer rounded-lg border p-3 text-center text-sm"
+          :class="storeCount === choice.value ? 'border-brand-500 bg-brand-50' : 'border-slate-300 hover:bg-slate-50'"
+        >
+          <input v-model="storeCount" type="radio" name="store-count" :value="choice.value" class="sr-only">
+          <span class="block font-semibold text-slate-900">{{ choice.label }}</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <UiInputSelectField v-model="industry" label="業種" :options="industryOptions" is-required />
+
     <UiInputCheckboxField v-model="hasAgreed" label="利用規約とプライバシーポリシーに同意する">
       <!-- 入力中の内容を失わないよう別タブで開く -->
       <template #label>

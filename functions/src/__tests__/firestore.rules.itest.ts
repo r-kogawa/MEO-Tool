@@ -46,6 +46,7 @@ beforeEach(async () => {
     for (const [orgId, uid, role, storeIds] of members) {
       await setDoc(doc(db, `organizations/${orgId}/members/${uid}`), { orgId, uid, role, storeIds })
     }
+    await setDoc(doc(db, 'signupProfiles/org-a'), { orgId: 'org-a', ownerUid: 'u-owner', phone: '0312345678' })
     await setDoc(doc(db, 'organizations/org-a/stores/st-1'), { name: '渋谷店' })
     await setDoc(doc(db, 'organizations/org-a/stores/st-2'), { name: '新宿店' })
     await setDoc(doc(db, 'organizations/org-a/invitations/inv-1'), { email: 'x@example.com', status: 'pending' })
@@ -217,4 +218,11 @@ test('publicSurveys は未ログインでも slug 指定の 1 件は読めるが
   await assertFails(updateDoc(doc(as('u-owner'), 'publicSurveys/slug-1'), { status: 'paused' }))
   await assertFails(getDoc(doc(anonymous(), 'rateLimits/slug-1_abc')))
   await assertFails(getDoc(doc(as('u-owner'), 'rateLimits/slug-1_abc')))
+})
+
+test('signupProfiles は組織の owner でも読めない', async () => {
+  await assertFails(getDoc(doc(as('u-owner'), 'signupProfiles/org-a')))
+  await assertFails(getDoc(doc(anonymous(), 'signupProfiles/org-a')))
+  await assertFails(getDocs(collection(as('u-owner'), 'signupProfiles')))
+  await assertFails(setDoc(doc(as('u-owner'), 'signupProfiles/org-a'), { phone: '0' }))
 })

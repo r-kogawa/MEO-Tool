@@ -4,12 +4,13 @@ interface Props {
   options: { value: T; label: string; isDisabled?: boolean }[]
   hint?: string
   error?: string | null
+  isRequired?: boolean
   isDisabled?: boolean
   /** ラベルを視覚的に隠す（フィルタなど、周囲の文脈で意味が分かる場合） */
   isLabelHidden?: boolean
 }
 
-withDefaults(defineProps<Props>(), { hint: undefined, error: null, isDisabled: false, isLabelHidden: false })
+withDefaults(defineProps<Props>(), { hint: undefined, error: null, isRequired: false, isDisabled: false, isLabelHidden: false })
 
 const model = defineModel<T>({ required: true })
 const id = useId()
@@ -17,10 +18,14 @@ const id = useId()
 
 <template>
   <div class="space-y-1.5">
-    <label :for="id" class="block text-sm font-medium text-slate-700" :class="isLabelHidden ? 'sr-only' : ''">{{ label }}</label>
+    <label :for="id" class="block text-sm font-medium text-slate-700" :class="isLabelHidden ? 'sr-only' : ''">
+      {{ label }}
+      <span v-if="isRequired" class="ml-1 text-xs text-rose-600">必須</span>
+    </label>
     <select
       :id="id"
       v-model="model"
+      :required="isRequired"
       :disabled="isDisabled"
       class="block h-10 w-full rounded-lg border bg-white px-3 pr-8 text-sm focus:outline-2 focus:outline-offset-0 focus:outline-brand-500 disabled:bg-slate-50"
       :class="error ? 'border-rose-400' : 'border-slate-300'"

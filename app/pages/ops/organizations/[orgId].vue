@@ -41,6 +41,31 @@ async function load(): Promise<void> {
 }
 onMounted(load)
 
+// 外部 API 経由の capturedAt は日付として読めない文字列があり得る。その場合は生の文字列を出す
+function formatCapturedAt(value: string | null): string {
+  if (!value) return '—'
+  return Number.isNaN(Date.parse(value)) ? value : formatDateTime(value)
+}
+
+// 登録情報カードの行。無い値は「—」
+const signupRows = computed<{ label: string; value: string }[]>(() => {
+  const signup = detail.value?.signup
+  if (!signup) return []
+  const source = signup.source
+  return [
+    { label: '電話番号', value: signup.phone },
+    { label: '業種', value: INDUSTRY_LABELS[signup.industry] },
+    { label: '運営店舗数', value: STORE_COUNT_LABELS[signup.storeCount] },
+    { label: '登録方法', value: SIGNUP_VIA_LABELS[signup.via] },
+    { label: 'ref', value: source?.ref ?? '—' },
+    { label: 'utm_source', value: source?.utmSource ?? '—' },
+    { label: 'utm_medium', value: source?.utmMedium ?? '—' },
+    { label: 'utm_campaign', value: source?.utmCampaign ?? '—' },
+    { label: '最初に開いたページ', value: source?.landingPath ?? '—' },
+    { label: '経路の保存日時', value: formatCapturedAt(source?.capturedAt ?? null) },
+  ].map(row => ({ ...row, value: row.value || '—' }))
+})
+
 const isSuspended = computed(() => detail.value?.org.status === 'suspended')
 
 async function onToggleStatus(): Promise<void> {
@@ -99,6 +124,16 @@ async function onSavePlan(): Promise<void> {
         <p class="text-sm text-slate-500">作成日: {{ formatDate(detail.org.createdAt) }}</p>
       </div>
       <UiCommonAlert v-if="statusAction.errorMessage.value" tone="danger" class="mt-3">{{ statusAction.errorMessage.value }}</UiCommonAlert>
+    </UiCommonCard>
+
+    <UiCommonCard title="登録情報">
+      <dl v-if="detail.signup" class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div v-for="row in signupRows" :key="row.label">
+          <dt class="text-xs text-slate-500">{{ row.label }}</dt>
+          <dd class="break-all">{{ row.value }}</dd>
+        </div>
+      </dl>
+      <p v-else class="text-sm text-slate-500">登録情報はありません（この項目を追加する前に登録された組織です）。</p>
     </UiCommonCard>
 
     <UiCommonCard title="プランと上限">

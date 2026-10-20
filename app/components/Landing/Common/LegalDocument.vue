@@ -5,8 +5,10 @@ import type { TermsArticle } from '~/utils/terms'
 interface Props {
   title: string
   articles: TermsArticle[]
-  /** 制定・改定日の表記（例: 2026年10月18日） */
+  /** 制定日の表記（例: 2026年10月18日） */
   enactedOn: string
+  /** 改定日の表記。改定していない文書では渡さない */
+  revisedOn?: string
   operator: string
 }
 
@@ -38,7 +40,7 @@ defineProps<Props>()
     </ol>
 
     <p class="mt-14 border-t border-slate-200 pt-6 text-right text-sm text-slate-500">
-      {{ enactedOn }} 制定<br>{{ operator }}
+      {{ enactedOn }} 制定<br><template v-if="revisedOn">{{ revisedOn }} 改定<br></template>{{ operator }}
     </p>
   </article>
 </template>

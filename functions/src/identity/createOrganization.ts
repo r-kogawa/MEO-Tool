@@ -5,6 +5,7 @@ import { fail } from '../shared/errors'
 import { memberRef, orgRef, type OrgDoc, type OrgType } from '../shared/members'
 import { asObject, requireId, requireOneOf, requireString } from '../shared/validation'
 import { DEFAULT_LIMITS, PLAN_NAMES } from './limits'
+import { parseSignupProfileInput, signupProfileRef, type SignupProfileInput, type SignupVia } from './signupProfile'
 
 const ORG_TYPES: readonly OrgType[] = ['individual', 'corporate']
 
@@ -13,21 +14,24 @@ export interface CreateOrganizationInput {
   type: OrgType
   orgName: string
   displayName: string
+  profile: SignupProfileInput
+  via: SignupVia
 }
 
-export function parseCreateOrganizationInput(data: unknown): CreateOrganizationInput {
+export function parseCreateOrganizationInput(data: unknown): Omit<CreateOrganizationInput, 'via'> {
   const input = asObject(data)
   return {
     requestId: requireId(input.requestId, 'リクエスト ID'),
     type: requireOneOf(input.type, ORG_TYPES, '組織種別'),
     orgName: requireString(input.orgName, '組織名', 100),
     displayName: requireString(input.displayName, '表示名', 50),
+    profile: parseSignupProfileInput(input),
   }
 }
 
 /** F-01 新規登録（画面から）: ログイン中のユーザーを owner にして組織を作る */
 export async function createOrganizationFunc(db: Firestore, caller: Caller, data: unknown): Promise<{ orgId: string }> {
-  return createOrganization(db, caller, parseCreateOrganizationInput(data))
+  return createOrganization(db, caller, { ...parseCreateOrganizationInput(data), via: 'signup' })
 }
 
 /**
@@ -35,7 +39,7 @@ export async function createOrganizationFunc(db: Firestore, caller: Caller, data
  * 組織 ID を呼び出し元が発行した requestId から決めるため、再送しても組織は 1 つだけ。
  */
 export async function createOrganization(db: Firestore, caller: Caller, input: CreateOrganizationInput): Promise<{ orgId: string }> {
-  const { requestId, type, orgName, displayName } = input
+  const { requestId, type, orgName, displayName, profile, via } = input
   const orgId = `org-${requestId}`
 
   return db.runTransaction(async (tx) => {
@@ -74,6 +78,7 @@ export async function createOrganization(db: Firestore, caller: Caller, input: C
       displayName,
       joinedAt: now,
     })
+    tx.create(signupProfileRef(db, orgId), { orgId, ownerUid: caller.uid, ...profile, via, createdAt: now })
     writeAuditLog(tx, db, orgId, 'organization.create', caller.uid)
     return { orgId }
   })

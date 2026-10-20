@@ -23,6 +23,22 @@ beforeEach(async () => {
   await db.doc('organizations/org-a/stores/st-2').set({ orgId: 'org-a', name: '新宿店', status: 'archived' })
   await db.doc('organizations/org-a/googleConnections/c-1').set({ status: 'error', googleEmail: 'g@example.com', lastError: '再連携してください' })
   await db.doc('organizations/org-a/usageMonthly/202610').set({ orgId: 'org-a', month: '202610', responses: 3 })
+  await db.doc('signupProfiles/org-a').set({
+    orgId: 'org-a', ownerUid: 'u-owner', phone: '0312345678', industry: 'beauty', storeCount: '2', via: 'signup',
+    source: { utmSource: null, utmMedium: null, utmCampaign: null, ref: 'card-tanaka', landingPath: '/', capturedAt: '2026-10-20T00:00:00.000Z' },
+    createdAt: new Date(),
+  })
+})
+
+test('一覧・詳細に登録情報が載る。プロフィールの無い組織は null', async () => {
+  const expected = {
+    phone: '0312345678', industry: 'beauty', storeCount: '2', via: 'signup',
+    source: { utmSource: null, utmMedium: null, utmCampaign: null, ref: 'card-tanaka', landingPath: '/', capturedAt: '2026-10-20T00:00:00.000Z' },
+  }
+  const list = await getOpsOrganizationsFunc(db, OPS, {}, DEPS)
+  assert.deepEqual(list.find(item => item.org.id === 'org-a')!.signup, expected)
+  assert.equal(list.find(item => item.org.id === 'org-b')!.signup, null)
+  assert.deepEqual((await getOpsOrganizationFunc(db, OPS, { orgId: 'org-a' }, DEPS)).signup, expected)
 })
 
 test('getOpsOrganizations: 退会済みを除く全組織の概要を返す', async () => {

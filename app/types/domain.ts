@@ -409,3 +409,26 @@ export interface BatchResult {
   succeeded: string[]
   failed: { id: string; message: string }[]
 }
+
+/** 登録時に集める情報（Functions の signupProfile と同じ形） */
+export type Industry = 'salon' | 'bodywork' | 'beauty' | 'unmanned' | 'other'
+export type StoreCount = '1' | '2' | '3-5' | '6+'
+export type SignupVia = 'signup' | 'externalApi'
+
+/** 登録経路（広告・名刺など）。各値は無ければ null */
+export interface SignupSource {
+  utmSource: string | null
+  utmMedium: string | null
+  utmCampaign: string | null
+  ref: string | null
+  landingPath: string | null
+  capturedAt: string | null
+}
+
+export interface SignupProfile {
+  phone: string
+  industry: Industry
+  storeCount: StoreCount
+  via: SignupVia
+  source: SignupSource | null
+}

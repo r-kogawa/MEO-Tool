@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { asObject, requireEmail, requireId, requireOneOf, requireString, requireStringArray } from '../validation'
+import { asObject, requireEmail, requireId, requireOneOf, requirePhone, requireString, requireStringArray } from '../validation'
 
 const invalid = { code: 'invalid-argument' }
 
@@ -36,4 +36,20 @@ test('requireStringArray: 重複を除き、空文字・型違い・件数超過
 test('requireEmail: 小文字化し、形式違いは invalid-argument', () => {
   assert.equal(requireEmail(' Tanaka@Example.COM '), 'tanaka@example.com')
   assert.throws(() => requireEmail('tanaka'), { code: 'invalid-argument', message: 'メールアドレスの形式が正しくありません。' })
+})
+
+test('requirePhone: 全角・ハイフン・括弧・空白を除いて数字だけにする', () => {
+  assert.equal(requirePhone('090-1234-5678'), '09012345678')
+  assert.equal(requirePhone('０３（１２３４）５６７８'), '0312345678')
+  assert.equal(requirePhone(' 03 1234 5678 '), '0312345678')
+  assert.equal(requirePhone('090ー1234ー5678'), '09012345678')
+})
+
+test('requirePhone: 0 始まり 10〜11 桁以外は invalid-argument', () => {
+  const message = '電話番号の形式が正しくありません。'
+  for (const value of ['031234567', '090123456789', '9012345678', '+81 90-1234-5678', '090-1234-567a']) {
+    assert.throws(() => requirePhone(value), { code: 'invalid-argument', message })
+  }
+  assert.throws(() => requirePhone(''), { message: '電話番号を入力してください。' })
+  assert.throws(() => requirePhone(9012345678), invalid)
 })

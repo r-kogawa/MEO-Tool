@@ -2,6 +2,8 @@ import { fail } from './errors'
 
 const ID_PATTERN = /^[A-Za-z0-9_-]+$/
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_SEPARATORS = /[\s()\-‐‑–—―−ー]/g
+const PHONE_PATTERN = /^0\d{9,10}$/
 
 export function asObject(data: unknown): Record<string, unknown> {
   if (typeof data !== 'object' || data === null || Array.isArray(data)) {
@@ -40,4 +42,11 @@ export function requireEmail(value: unknown): string {
   const email = requireString(value, 'メールアドレス', 254).toLowerCase()
   if (!EMAIL_PATTERN.test(email)) fail('invalid-argument', 'メールアドレスの形式が正しくありません。')
   return email
+}
+
+/** 全角・区切り文字を除いた数字だけの電話番号を返す（画面側と同じ規則） */
+export function requirePhone(value: unknown): string {
+  const phone = requireString(value, '電話番号', 30).normalize('NFKC').replace(PHONE_SEPARATORS, '')
+  if (!PHONE_PATTERN.test(phone)) fail('invalid-argument', '電話番号の形式が正しくありません。')
+  return phone
 }

@@ -9,6 +9,7 @@ useSeoMeta({ title: 'プライバシーポリシー', robots: 'noindex, follow' 
     title="プライバシーポリシー"
     :articles="PRIVACY_ARTICLES"
     :enacted-on="PRIVACY_ENACTED_ON"
+    :revised-on="PRIVACY_REVISED_ON"
     :operator="TERMS_OPERATOR"
   />
 </template>

@@ -84,7 +84,7 @@ export async function createAccountFunc(db: Firestore, data: unknown, auth: Acco
   const { orgId } = await createOrganization(
     db,
     { uid, email, isOperator: false },
-    { ...input, requestId: `${EXTERNAL_PREFIX}${input.requestId}` },
+    { ...input, requestId: `${EXTERNAL_PREFIX}${input.requestId}`, via: 'externalApi' },
   )
   return { uid, orgId, passwordSetupLink: await auth.createPasswordSetupLink(email) }
 }

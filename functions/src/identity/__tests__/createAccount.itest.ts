@@ -4,7 +4,7 @@ import { clearFirestore, getTestDb } from '../../__tests__/emulator'
 import { createAccountFunc, type AccountAuth } from '../createAccount'
 
 const db = getTestDb()
-const input = { requestId: 'req12345678', email: ' Tanaka@Example.com ', type: 'corporate', orgName: 'ハナミ食堂', displayName: '田中' }
+const input = { requestId: 'req12345678', email: ' Tanaka@Example.com ', type: 'corporate', orgName: 'ハナミ食堂', displayName: '田中', phone: '03-1234-5678', industry: 'salon', storeCount: '1' }
 
 /** uid → メールアドレスで Auth ユーザーを持つ偽物 */
 function fakeAuth(users = new Map<string, string>()): AccountAuth & { users: Map<string, string> } {
@@ -78,5 +78,19 @@ test('入力が不正なら Auth ユーザーを作らない', async () => {
   await assert.rejects(createAccountFunc(db, { ...input, email: 'invalid' }, auth), { code: 'invalid-argument' })
   await assert.rejects(createAccountFunc(db, { ...input, type: 'unknown' }, auth), { code: 'invalid-argument' })
   await assert.rejects(createAccountFunc(db, { ...input, requestId: 'a'.repeat(101) }, auth), { code: 'invalid-argument' })
+  assert.equal(auth.users.size, 0)
+})
+
+test('signupProfiles を via: externalApi で作る', async () => {
+  await createAccountFunc(db, { ...input, source: { utmSource: 'google', utmMedium: 'cpc' } }, fakeAuth())
+  const profile = (await db.doc('signupProfiles/org-ext-req12345678').get()).data()!
+  assert.equal(profile.via, 'externalApi')
+  assert.equal(profile.ownerUid, 'ext-req12345678')
+  assert.equal(profile.source.utmSource, 'google')
+})
+
+test('追加項目が無いと invalid-argument で、Auth ユーザーを作らない', async () => {
+  const auth = fakeAuth()
+  await assert.rejects(createAccountFunc(db, { ...input, industry: undefined }, auth), { code: 'invalid-argument' })
   assert.equal(auth.users.size, 0)
 })

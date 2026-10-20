@@ -6,6 +6,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('ja-JP', {
   hour: '2-digit',
   minute: '2-digit',
 })
+const timeFormatter = new Intl.DateTimeFormat('ja-JP', { hour: '2-digit', minute: '2-digit' })
 const shortDateFormatter = new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric' })
 
 export function formatDate(iso: string | null): string {
@@ -14,6 +15,10 @@ export function formatDate(iso: string | null): string {
 
 export function formatDateTime(iso: string | null): string {
   return iso ? dateTimeFormatter.format(new Date(iso)) : '—'
+}
+
+export function formatTime(iso: string | null): string {
+  return iso ? timeFormatter.format(new Date(iso)) : '—'
 }
 
 /** YYYY-MM-DD → 9/29 */

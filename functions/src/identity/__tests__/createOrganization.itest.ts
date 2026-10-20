@@ -4,7 +4,7 @@ import { caller, clearFirestore, getTestDb } from '../../__tests__/emulator'
 import { createOrganizationFunc } from '../createOrganization'
 
 const db = getTestDb()
-const input = { requestId: 'req12345678', type: 'corporate', orgName: ' ハナミ食堂 ', displayName: '田中' }
+const input = { requestId: 'req12345678', type: 'corporate', orgName: ' ハナミ食堂 ', displayName: '田中', phone: '03-1234-5678', industry: 'salon', storeCount: '1' }
 
 beforeEach(() => clearFirestore())
 
@@ -71,4 +71,35 @@ test('既存ユーザーの platformRole（運営フラグ）は上書きしな�
   await createOrganizationFunc(db, caller('u-ops', 'ops@example.com'), input)
 
   assert.equal((await db.doc('users/u-ops').get()).get('platformRole'), 'operator')
+})
+
+test('signupProfiles/{orgId} を via: signup で作る', async () => {
+  const source = { ref: 'card-tanaka', landingPath: '/', capturedAt: '2026-10-20T00:00:00.000Z' }
+  const { orgId } = await createOrganizationFunc(db, caller('u-1'), { ...input, source })
+  const profile = (await db.doc(`signupProfiles/${orgId}`).get()).data()!
+  assert.equal(profile.orgId, orgId)
+  assert.equal(profile.ownerUid, 'u-1')
+  assert.equal(profile.phone, '0312345678')
+  assert.equal(profile.industry, 'salon')
+  assert.equal(profile.storeCount, '1')
+  assert.equal(profile.via, 'signup')
+  assert.deepEqual(profile.source, { utmSource: null, utmMedium: null, utmCampaign: null, ...source })
+  assert.ok(profile.createdAt)
+})
+
+test('経路が無ければ source は null', async () => {
+  const { orgId } = await createOrganizationFunc(db, caller('u-1'), input)
+  assert.equal((await db.doc(`signupProfiles/${orgId}`).get()).get('source'), null)
+})
+
+test('再送で signupProfiles を上書きしない', async () => {
+  const { orgId } = await createOrganizationFunc(db, caller('u-1'), input)
+  await createOrganizationFunc(db, caller('u-1'), { ...input, storeCount: '6+' })
+  assert.equal((await db.doc(`signupProfiles/${orgId}`).get()).get('storeCount'), '1')
+})
+
+test('追加項目が無いと invalid-argument で、組織もプロフィールも作らない', async () => {
+  await assert.rejects(createOrganizationFunc(db, caller('u-1'), { ...input, phone: undefined }), { code: 'invalid-argument', message: '電話番号を入力してください。' })
+  assert.equal((await db.doc('organizations/org-req12345678').get()).exists, false)
+  assert.equal((await db.collection('signupProfiles').get()).size, 0)
 })
